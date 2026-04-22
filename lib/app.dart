@@ -11,6 +11,10 @@ import 'screens/events_screen.dart';
 import 'screens/gym_screen.dart';
 import 'screens/snapshots_screen.dart';
 import 'screens/more_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/notes_screen.dart';
+import 'screens/links_screen.dart';
+import 'screens/vault_screen.dart';
 import 'screens/placeholder_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/tweaks_sheet.dart';
@@ -93,6 +97,18 @@ class _AppShellState extends State<AppShell> {
           onSync: () => context.read<AppState>().syncNow(),
         );
         break;
+      case 'profile':
+        content = const ProfileScreen();
+        break;
+      case 'notes':
+        content = const NotesScreen();
+        break;
+      case 'links':
+        content = const LinksScreen();
+        break;
+      case 'vault':
+        content = const VaultScreen();
+        break;
       default:
         content = PlaceholderScreen(label: _placeholderLabel(state.screen));
     }
@@ -101,24 +117,22 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       backgroundColor: theme.bg,
-      body: SafeArea(
-        child: Stack(children: [
-          Positioned.fill(
-            child: Container(
-              color: theme.bg,
+      body: Container(
+        color: theme.bg,
+        child: SafeArea(
+          child: Stack(children: [
+            Positioned.fill(
               child: Column(children: [
                 Expanded(
                   child: _ScreenSwitcher(
-                    child: Container(
+                    child: KeyedSubtree(
                       key: screenKey,
-                      color: theme.bg,
                       child: content,
                     ),
                   ),
                 ),
               ]),
             ),
-          ),
 
           // Bottom nav (floating translucent)
           Positioned(
@@ -167,17 +181,14 @@ class _AppShellState extends State<AppShell> {
               ),
             ),
           ],
-        ]),
+          ]),
+        ),
       ),
     );
   }
 
   String _placeholderLabel(String key) => switch (key) {
         'skincare' => 'Skincare',
-        'notes' => 'Notes',
-        'links' => 'Saved links',
-        'vault' => 'Vault',
-        'profile' => 'Profile',
         _ => 'Soon',
       };
 }
@@ -208,12 +219,12 @@ class _IosSwitchTransition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slideIn = Tween<Offset>(begin: const Offset(0.04, 0.02), end: Offset.zero)
+    final slideIn = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
         .chain(CurveTween(curve: Curves.easeOutCubic)).animate(primary);
     final fadeIn = CurvedAnimation(parent: primary, curve: Curves.easeOut);
     final scaleIn = Tween<double>(begin: 0.985, end: 1).chain(CurveTween(curve: Curves.easeOutCubic)).animate(primary);
 
-    final slideOut = Tween<Offset>(begin: Offset.zero, end: const Offset(-0.04, -0.01))
+    final slideOut = Tween<Offset>(begin: Offset.zero, end: const Offset(0, -0.06))
         .chain(CurveTween(curve: Curves.easeIn)).animate(secondary);
     final fadeOut = Tween<double>(begin: 1, end: 0).chain(CurveTween(curve: Curves.easeIn)).animate(secondary);
 

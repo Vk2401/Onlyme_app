@@ -1,40 +1,110 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
+import '../models/debt.dart';
+import '../storage/export_io.dart';
 import '../widgets/header.dart';
 import '../widgets/primitives.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/confirm_sheet.dart';
 
 class MoreScreen extends StatelessWidget {
   final VoidCallback onOpenTweaks;
   final Future<void> Function() onSync;
   const MoreScreen({super.key, required this.onOpenTweaks, required this.onSync});
 
-  static final sections = <_Section>[
-    _Section('Health', [
-      _Item('gym', 'Gym', 'Cutting · Week 3', 'dumbbell', Color(0xFFF472B6)),
-      _Item('skincare', 'Skincare', 'AM & PM routines', 'droplet', Color(0xFF60A5FA)),
-      _Item('snapshots', 'Snapshots', '9 new this month', 'camera', Color(0xFFFBBF24)),
-    ]),
-    _Section('Memory', [
-      _Item('notes', 'Notes', '23 · 4 pinned', 'note', Color(0xFFA78BFA)),
-      _Item('links', 'Saved links', '58 · sorted by tag', 'link', Color(0xFF34D399)),
-    ]),
-    _Section('Private', [
-      _Item('vault', 'Vault', '14 entries · locked', 'lock', Color(0xFFEF4444)),
-      _Item('profile', 'Profile', 'Vasanth · 28', 'user', Color(0xFF94A3B8)),
-    ]),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final theme = state.theme;
     final last = state.lastSyncAt;
-    final lastStr = last == null
-        ? 'Never synced'
-        : 'Last synced ${_ago(last)}';
+    final lastStr = last == null ? 'Never synced' : 'Last synced ${_ago(last)}';
+    final profile = state.profile;
+
+    // --- Real data summaries ---
+    final pendingTasks = state.tasks.where((t) => !t.done).length;
+    final doneTasks = state.tasks.length - pendingTasks;
+    final tasksSub = state.tasks.isEmpty
+        ? 'No tasks yet'
+        : '${state.tasks.length} total · $doneTasks done';
+
+    final activeDebts = state.debts.where((d) => !d.settled).toList();
+    final iOwe = activeDebts.where((d) => d.type == DebtType.iOwe).fold<int>(0, (s, d) => s + d.remain);
+    final owedMe = activeDebts.where((d) => d.type == DebtType.theyOwe).fold<int>(0, (s, d) => s + d.remain);
+    final cur = profile.currencySymbol;
+    final financeSub = state.debts.isEmpty
+        ? 'No debts tracked'
+        : '${activeDebts.length} active · owe $cur${_fmtK(iOwe)} · owed $cur${_fmtK(owedMe)}';
+
+    final upcomingEvents = state.events.where((e) => e.daysAway >= 0).toList();
+    final eventsSub = state.events.isEmpty
+        ? 'No events planned'
+        : '${state.events.length} planned${upcomingEvents.isNotEmpty ? ' · next in ${upcomingEvents.first.daysAway}d' : ''}';
+
+    final totalExercises = state.gym.days.fold<int>(0, (s, d) => s + d.exercises.length);
+    final doneDays = state.gym.days.where((d) => d.done).length;
+    final gymSub = totalExercises == 0
+        ? '${state.gym.name} · no exercises yet'
+        : '${state.gym.name} · $doneDays/${state.gym.days.length} days · $totalExercises exercises';
+
+    final totalSnaps = state.snapshots.values.fold<int>(0, (s, l) => s + l.length);
+    final snapsThisMonth = _snapsThisMonth(state);
+    final snapsSub = totalSnaps == 0
+        ? 'No snapshots yet'
+        : '$totalSnaps total${snapsThisMonth > 0 ? ' · $snapsThisMonth this month' : ''}';
+
+    final weightSub = state.weightLogs.isEmpty
+        ? 'No weights logged'
+        : '${state.weightLogs.length} entries · latest ${state.weightLogs.last.kg.toStringAsFixed(1)} kg';
+
+    final profileSub = profile.isEmpty
+        ? 'Tap to set up'
+        : [
+            if (profile.name != null && profile.name!.isNotEmpty) profile.name!,
+            if (profile.age != null) '${profile.age} yrs',
+          ].join(' · ');
+
+    final notesSub = state.notes.isEmpty ? 'No notes yet' : '${state.notes.length} saved';
+    final linksSub = state.links.isEmpty ? 'No links saved' : '${state.links.length} saved';
+    final vaultSub = state.vault.isEmpty ? 'No entries · locked' : '${state.vault.length} entries · locked';
+
+    final totalEntries = state.tasks.length
+        + state.debts.length
+        + state.events.length
+        + totalSnaps
+        + state.weightLogs.length
+        + state.notes.length
+        + state.links.length
+        + state.vault.length;
+    final since = DateTime.fromMillisecondsSinceEpoch(profile.createdAt);
+    final displayName = (profile.name == null || profile.name!.isEmpty) ? 'Only me' : profile.name!;
+    final initial = (profile.name != null && profile.name!.isNotEmpty)
+        ? profile.name!.trim().substring(0, 1).toUpperCase()
+        : 'M';
+
+    final sections = <_Section>[
+      _Section('Trackers', [
+        _Item('tasks', 'Tasks', tasksSub, 'checkCircle', const Color(0xFF8B7CFF)),
+        _Item('finance', 'Finance', financeSub, 'wallet', const Color(0xFF34D399)),
+        _Item('events', 'Events', eventsSub, 'calendar', const Color(0xFFFB7185)),
+      ]),
+      _Section('Health', [
+        _Item('gym', 'Gym', gymSub, 'dumbbell', const Color(0xFFF472B6)),
+        _Item('snapshots', 'Snapshots', snapsSub, 'camera', const Color(0xFFFBBF24)),
+        _Item('gym', 'Weight log', weightSub, 'trendUp', const Color(0xFF60A5FA)),
+      ]),
+      _Section('Memory', [
+        _Item('notes', 'Notes', notesSub, 'note', const Color(0xFFA78BFA)),
+        _Item('links', 'Saved links', linksSub, 'link', const Color(0xFF34D399)),
+        _Item('vault', 'Vault', vaultSub, 'lock', const Color(0xFFEF4444)),
+      ]),
+      _Section('Account', [
+        _Item('profile', 'Profile', profileSub, 'user', const Color(0xFF94A3B8)),
+      ]),
+    ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 120),
@@ -45,34 +115,42 @@ class MoreScreen extends StatelessWidget {
         // Profile header
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: AppCard(theme: theme, pad: 16, child: Row(children: [
-            Container(
-              width: 56, height: 56,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [theme.accent, theme.accent2]),
-                borderRadius: BorderRadius.circular(18),
+          child: AppCard(theme: theme, pad: 16,
+            onTap: () => state.setScreen('profile'),
+            child: Row(children: [
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [theme.accent, theme.accent2]),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                alignment: Alignment.center,
+                child: Text(initial, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
               ),
-              alignment: Alignment.center,
-              child: const Text('V', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Vasanth', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.ink)),
-                const SizedBox(height: 2),
-                Text('Since Jan 2024 · 112 entries', style: TextStyle(fontSize: 13, color: theme.muted)),
-              ],
-            )),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(border: Border.all(color: theme.rule, width: 1), borderRadius: BorderRadius.circular(10)),
-              child: Text('Edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.ink)),
-            ),
-          ])),
+              const SizedBox(width: 14),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(displayName, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.ink)),
+                  const SizedBox(height: 2),
+                  Text('Since ${_monthYear(since)} · $totalEntries entries',
+                      style: TextStyle(fontSize: 13, color: theme.muted)),
+                ],
+              )),
+              GestureDetector(
+                onTap: () => state.setScreen('profile'),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(border: Border.all(color: theme.rule, width: 1), borderRadius: BorderRadius.circular(10)),
+                  child: Text('Edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.ink)),
+                ),
+              ),
+            ]),
+          ),
         ),
 
-        // Sync card (placeholder for future Claude sync)
+        // Sync card
         const SizedBox(height: 22),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -115,10 +193,67 @@ class MoreScreen extends StatelessWidget {
           ),
         ],
 
+        const SizedBox(height: 22),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+          child: Text('BACKUP', style: TextStyle(
+            fontSize: 12, fontWeight: FontWeight.w700, color: theme.muted, letterSpacing: 1,
+          )),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: AppCard(theme: theme, pad: 0, child: Column(children: [
+            _MoreRow(
+              item: _Item('__export', 'Export data', 'Save all local data as JSON', 'trendUp', const Color(0xFF60A5FA)),
+              hasTop: false,
+              onTap: () => _runExport(context),
+            ),
+            _MoreRow(
+              item: _Item('__import', 'Import data', 'Replace all data from JSON backup', 'refresh', const Color(0xFFF472B6)),
+              hasTop: true,
+              onTap: () => _runImport(context),
+            ),
+          ])),
+        ),
+
         const SizedBox(height: 28),
         Center(child: Text('Only me · v1.0 · made with ♡', style: TextStyle(fontSize: 11, color: theme.muted))),
       ],
     );
+  }
+
+  Future<void> _runExport(BuildContext context) async {
+    final state = context.read<AppState>();
+    try {
+      await exportAll(state);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    }
+  }
+
+  Future<void> _runImport(BuildContext context) async {
+    final ok = await confirmDelete(
+      context,
+      title: 'Replace all data?',
+      message: 'Importing will overwrite tasks, debts, events, gym, snapshots, notes, links, vault and profile with the contents of the chosen backup file.',
+      confirmLabel: 'Choose file',
+      icon: LucideIcons.upload,
+    );
+    if (!ok) return;
+    if (!context.mounted) return;
+
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (picked == null || picked.files.single.path == null) return;
+
+    if (!context.mounted) return;
+    final state = context.read<AppState>();
+    final result = await importAll(state, File(picked.files.single.path!));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message)));
   }
 }
 
@@ -191,7 +326,7 @@ class _MoreRow extends StatelessWidget {
               children: [
                 Text(item.label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.1)),
                 const SizedBox(height: 1),
-                Text(item.sub, style: TextStyle(fontSize: 12, color: theme.muted)),
+                Text(item.sub, style: TextStyle(fontSize: 12, color: theme.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             )),
             Icon(LucideIcons.chevronRight, color: theme.muted, size: 16),
@@ -223,4 +358,27 @@ String _ago(DateTime then) {
   if (d.inMinutes < 60) return '${d.inMinutes}m ago';
   if (d.inHours < 24) return '${d.inHours}h ago';
   return '${d.inDays}d ago';
+}
+
+String _monthYear(DateTime d) {
+  const abbrs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${abbrs[d.month - 1]} ${d.year}';
+}
+
+String _fmtK(int n) {
+  if (n >= 100000) return '${(n / 100000).toStringAsFixed(1)}L';
+  if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+  return '$n';
+}
+
+int _snapsThisMonth(AppState state) {
+  final now = DateTime.now();
+  int count = 0;
+  for (final list in state.snapshots.values) {
+    for (final s in list) {
+      final ts = DateTime.fromMillisecondsSinceEpoch(s.id);
+      if (ts.year == now.year && ts.month == now.month) count++;
+    }
+  }
+  return count;
 }

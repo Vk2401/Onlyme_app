@@ -9,6 +9,7 @@ import '../widgets/primitives.dart';
 import '../widgets/task_card.dart';
 import '../widgets/segmented.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/confirm_sheet.dart';
 
 const _iconKeys = [
   'check', 'checkCircle', 'droplet', 'dumbbell', 'heart', 'note',
@@ -191,6 +192,11 @@ class _DismissibleTask extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
         ),
         child: const Icon(LucideIcons.trash2, color: Colors.white, size: 20),
+      ),
+      confirmDismiss: (_) => confirmDelete(
+        context,
+        title: 'Delete task?',
+        message: task.title,
       ),
       onDismissed: (_) => onDelete(),
       child: GestureDetector(

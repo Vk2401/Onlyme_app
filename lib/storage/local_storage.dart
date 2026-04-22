@@ -6,6 +6,10 @@ import '../models/event.dart';
 import '../models/gym.dart';
 import '../models/snapshot.dart';
 import '../models/weight_entry.dart';
+import '../models/profile.dart';
+import '../models/note.dart';
+import '../models/saved_link.dart';
+import '../models/vault_entry.dart';
 
 class LocalStorage {
   static const _kTasks = 'onlyme:tasks';
@@ -18,6 +22,10 @@ class LocalStorage {
   static const _kLastSync = 'onlyme:lastSync';
   static const _kSnapshots = 'onlyme:snapshots';
   static const _kWeight = 'onlyme:weight';
+  static const _kProfile = 'onlyme:profile';
+  static const _kNotes = 'onlyme:notes';
+  static const _kLinks = 'onlyme:links';
+  static const _kVault = 'onlyme:vault';
 
   final SharedPreferences _p;
   LocalStorage(this._p);
@@ -110,4 +118,47 @@ class LocalStorage {
   // --- Sync stamp ---
   String? readLastSync() => _p.getString(_kLastSync);
   Future<void> writeLastSync(String iso) => _p.setString(_kLastSync, iso);
+
+  // --- Profile ---
+  Profile? readProfile() {
+    final raw = _p.getString(_kProfile);
+    if (raw == null) return null;
+    return Profile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  }
+
+  Future<void> writeProfile(Profile p) =>
+      _p.setString(_kProfile, jsonEncode(p.toJson()));
+
+  // --- Notes ---
+  List<Note>? readNotes() {
+    final raw = _p.getString(_kNotes);
+    if (raw == null) return null;
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => Note.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> writeNotes(List<Note> notes) =>
+      _p.setString(_kNotes, jsonEncode(notes.map((n) => n.toJson()).toList()));
+
+  // --- Saved links ---
+  List<SavedLink>? readLinks() {
+    final raw = _p.getString(_kLinks);
+    if (raw == null) return null;
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => SavedLink.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> writeLinks(List<SavedLink> links) =>
+      _p.setString(_kLinks, jsonEncode(links.map((l) => l.toJson()).toList()));
+
+  // --- Vault ---
+  List<VaultEntry>? readVault() {
+    final raw = _p.getString(_kVault);
+    if (raw == null) return null;
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => VaultEntry.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> writeVault(List<VaultEntry> entries) =>
+      _p.setString(_kVault, jsonEncode(entries.map((v) => v.toJson()).toList()));
 }

@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/header.dart';
 import '../widgets/segmented.dart';
 import '../widgets/primitives.dart';
+import '../widgets/confirm_sheet.dart';
 
 class SnapshotsScreen extends StatefulWidget {
   const SnapshotsScreen({super.key});
@@ -89,7 +90,15 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
                   return _SnapTile(
                     snap: s, theme: theme,
                     onTap: () => setState(() => open = s),
-                    onDelete: () => context.read<AppState>().deleteSnapshot(cat, s.id),
+                    onDelete: () async {
+                      final ok = await confirmDelete(
+                        context,
+                        title: 'Delete snapshot?',
+                        message: s.note.isEmpty ? s.date : '${s.note} · ${s.date}',
+                      );
+                      if (!ok || !context.mounted) return;
+                      context.read<AppState>().deleteSnapshot(cat, s.id);
+                    },
                   );
                 },
               ),
@@ -102,8 +111,15 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
           snap: open!,
           cat: cat,
           onClose: () => setState(() => open = null),
-          onDelete: () {
-            context.read<AppState>().deleteSnapshot(cat, open!.id);
+          onDelete: () async {
+            final snap = open!;
+            final ok = await confirmDelete(
+              context,
+              title: 'Delete snapshot?',
+              message: snap.note.isEmpty ? snap.date : '${snap.note} · ${snap.date}',
+            );
+            if (!ok || !context.mounted) return;
+            context.read<AppState>().deleteSnapshot(cat, snap.id);
             setState(() => open = null);
           },
         ),

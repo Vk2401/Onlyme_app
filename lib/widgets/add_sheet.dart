@@ -14,7 +14,9 @@ class AddSheet extends StatelessWidget {
     _Opt('events', 'Event', 'calendar', Color(0xFFFB7185)),
     _Opt('gym', 'Workout', 'dumbbell', Color(0xFFF472B6)),
     _Opt('snapshots', 'Snapshot', 'camera', Color(0xFFFBBF24)),
-    _Opt('more', 'Note', 'note', Color(0xFFA78BFA)),
+    _Opt('notes', 'Note', 'note', Color(0xFFA78BFA)),
+    _Opt('links', 'Link', 'link', Color(0xFF34D399)),
+    _Opt('vault', 'Password', 'lock', Color(0xFFEF4444)),
   ];
 
   @override

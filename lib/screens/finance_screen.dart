@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/header.dart';
 import '../widgets/primitives.dart';
 import '../widgets/segmented.dart';
+import '../widgets/confirm_sheet.dart';
 
 class FinanceScreen extends StatefulWidget {
   const FinanceScreen({super.key});
@@ -27,6 +28,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     final iOwe = active.where((d) => d.type == DebtType.iOwe).fold<int>(0, (s, d) => s + d.remain);
     final owedMe = active.where((d) => d.type == DebtType.theyOwe).fold<int>(0, (s, d) => s + d.remain);
     final net = owedMe - iOwe;
+    final cur = state.profile.currencySymbol;
     final shown = tab == 'all'
         ? debts
         : debts.where((d) => (tab == 'i_owe' && d.type == DebtType.iOwe) || (tab == 'they_owe' && d.type == DebtType.theyOwe)).toList();
@@ -61,7 +63,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 const Text('Net position', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white)),
                 const SizedBox(height: 4),
                 Text(
-                  '${net >= 0 ? '+' : '−'}₹${_fmt(net.abs())}',
+                  '${net >= 0 ? '+' : '−'}$cur${_fmt(net.abs())}',
                   style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: -1),
                 ),
                 const SizedBox(height: 18),
@@ -71,14 +73,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('You owe', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.w500)),
                     const SizedBox(height: 3),
-                    Text('₹${_fmt(iOwe)}', style: const TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.w700)),
+                    Text('$cur${_fmt(iOwe)}', style: const TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.w700)),
                   ])),
                   Container(width: 1, height: 36, color: Colors.white.withOpacity(0.2)),
                   const SizedBox(width: 20),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Owed to you', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.w500)),
                     const SizedBox(height: 3),
-                    Text('₹${_fmt(owedMe)}', style: const TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.w700)),
+                    Text('$cur${_fmt(owedMe)}', style: const TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.w700)),
                   ])),
                 ]),
               ]),
@@ -146,6 +148,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
   Future<void> _openPaySheet(Debt d) async {
     final state = context.read<AppState>();
     final theme = state.theme;
+    final cur = state.profile.currencySymbol;
     int amt = (d.remain * 0.25).round().clamp(1, d.remain);
 
     await showModalBottomSheet<void>(
@@ -175,7 +178,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(14)),
                 child: Row(children: [
-                  Text('₹', style: TextStyle(fontSize: 26, color: theme.muted, fontWeight: FontWeight.w600)),
+                  Text(cur, style: TextStyle(fontSize: 26, color: theme.muted, fontWeight: FontWeight.w600)),
                   const SizedBox(width: 10),
                   Expanded(child: TextFormField(
                     key: ValueKey(amt),
@@ -204,7 +207,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          q == remain ? 'Full' : '₹$q',
+                          q == remain ? 'Full' : '$cur$q',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: amt == q ? Colors.white : theme.ink),
                         ),
                       ),
@@ -227,7 +230,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     boxShadow: [BoxShadow(color: theme.glow, blurRadius: 30, offset: const Offset(0, 10))],
                   ),
                   alignment: Alignment.center,
-                  child: Text('Log ₹${_fmt(amt)}', style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w700)),
+                  child: Text('Log $cur${_fmt(amt)}', style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w700)),
                 ),
               ),
             ]),
@@ -260,6 +263,11 @@ class _DismissibleDebt extends StatelessWidget {
         decoration: BoxDecoration(color: theme.danger, borderRadius: BorderRadius.circular(18)),
         child: const Icon(LucideIcons.trash2, color: Colors.white, size: 20),
       ),
+      confirmDismiss: (_) => confirmDelete(
+        context,
+        title: 'Delete debt?',
+        message: debt.person,
+      ),
       onDismissed: (_) => onDelete(),
       child: GestureDetector(
         onLongPress: onEdit,
@@ -282,6 +290,7 @@ class _DebtCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mine = debt.type == DebtType.iOwe;
+    final cur = context.watch<AppState>().profile.currencySymbol;
     return AppCard(theme: theme, pad: 14, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Container(
@@ -307,7 +316,7 @@ class _DebtCard extends StatelessWidget {
                 ),
               ),
               Text(
-                debt.settled ? 'Settled' : '₹${_fmt(debt.remain)}',
+                debt.settled ? 'Settled' : '$cur${_fmt(debt.remain)}',
                 style: TextStyle(
                   fontSize: 15, fontWeight: FontWeight.w700,
                   color: debt.settled ? theme.muted : theme.ink,
@@ -443,7 +452,7 @@ class _DebtSheetState extends State<_DebtSheet> {
           _FieldRow(theme: theme, hint: 'Person / lender name', controller: _person, autofocus: !editing),
           const SizedBox(height: 10),
           Row(children: [
-            Expanded(child: _FieldRow(theme: theme, hint: 'Amount (₹)', controller: _total, keyboardType: TextInputType.number)),
+            Expanded(child: _FieldRow(theme: theme, hint: 'Amount (${state.profile.currencySymbol})', controller: _total, keyboardType: TextInputType.number)),
             const SizedBox(width: 10),
             Expanded(child: _FieldRow(theme: theme, hint: 'Due date (e.g. Jun 12)', controller: _due)),
           ]),

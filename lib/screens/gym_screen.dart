@@ -6,6 +6,7 @@ import '../models/gym.dart';
 import '../theme/app_theme.dart';
 import '../widgets/header.dart';
 import '../widgets/primitives.dart';
+import '../widgets/confirm_sheet.dart';
 
 class GymScreen extends StatefulWidget {
   const GymScreen({super.key});
@@ -482,6 +483,11 @@ class _DismissibleExercise extends StatelessWidget {
         decoration: BoxDecoration(color: theme.danger, borderRadius: BorderRadius.circular(18)),
         child: const Icon(LucideIcons.trash2, color: Colors.white, size: 20),
       ),
+      confirmDismiss: (_) => confirmDelete(
+        context,
+        title: 'Delete exercise?',
+        message: '${ex.name} · ${ex.sets}×${ex.reps}',
+      ),
       onDismissed: (_) => onDelete(),
       child: GestureDetector(
         onTap: onEdit,
@@ -601,6 +607,11 @@ class _WeightRow extends StatelessWidget {
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(color: theme.danger, borderRadius: BorderRadius.circular(12)),
         child: const Icon(LucideIcons.trash2, color: Colors.white, size: 16),
+      ),
+      confirmDismiss: (_) => confirmDelete(
+        context,
+        title: 'Delete weight entry?',
+        message: '${entry.kg.toStringAsFixed(1)} kg · ${entry.dateStr}',
       ),
       onDismissed: (_) => onDelete(),
       child: Container(

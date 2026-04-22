@@ -25,6 +25,7 @@ class HomeScreen extends StatelessWidget {
         .where((d) => d.type == DebtType.theyOwe && !d.settled)
         .fold<int>(0, (s, d) => s + d.remain);
     final next = state.events.isEmpty ? null : state.events.first;
+    final cur = state.profile.currencySymbol;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 120),
@@ -51,7 +52,7 @@ class HomeScreen extends StatelessWidget {
           child: Row(children: [
             Expanded(child: _StatCard(
               title: 'Owed to me',
-              value: owedMe == 0 ? '₹0' : '₹${_fmtK(owedMe)}',
+              value: owedMe == 0 ? '${cur}0' : '$cur${_fmtK(owedMe)}',
               icon: LucideIcons.arrowDown,
               color: theme.success,
               onTap: () => state.setScreen('finance'),
@@ -59,7 +60,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(child: _StatCard(
               title: 'I owe',
-              value: iOwe == 0 ? '₹0' : '₹${_fmtK(iOwe)}',
+              value: iOwe == 0 ? '${cur}0' : '$cur${_fmtK(iOwe)}',
               icon: LucideIcons.arrowUp,
               color: theme.danger,
               onTap: () => state.setScreen('finance'),

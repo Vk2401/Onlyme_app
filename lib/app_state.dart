@@ -5,6 +5,10 @@ import 'models/event.dart';
 import 'models/gym.dart';
 import 'models/snapshot.dart';
 import 'models/weight_entry.dart';
+import 'models/profile.dart';
+import 'models/note.dart';
+import 'models/saved_link.dart';
+import 'models/vault_entry.dart';
 import 'storage/local_storage.dart';
 import 'data/seed_data.dart';
 import 'theme/app_theme.dart';
@@ -18,6 +22,10 @@ class AppState extends ChangeNotifier {
   late GymPlan gym;
   late Map<String, List<Snapshot>> snapshots;
   late List<WeightEntry> weightLogs;
+  late Profile profile;
+  late List<Note> notes;
+  late List<SavedLink> links;
+  late List<VaultEntry> vault;
 
   String screen = 'home';
   AppTheme theme = AppTheme.build(dark: true, accentKey: AccentKey.mint);
@@ -34,6 +42,13 @@ class AppState extends ChangeNotifier {
     state.gym = s.readGym() ?? seedGymPlan;
     state.snapshots = s.readSnapshots() ?? Map.from(seedSnapshots);
     state.weightLogs = s.readWeightLogs() ?? List.from(seedWeightLogs);
+    state.profile = s.readProfile() ?? Profile(createdAt: DateTime.now().millisecondsSinceEpoch);
+    if (s.readProfile() == null) {
+      await s.writeProfile(state.profile);
+    }
+    state.notes = s.readNotes() ?? [];
+    state.links = s.readLinks() ?? [];
+    state.vault = s.readVault() ?? [];
     state.screen = s.readScreen() ?? 'home';
 
     final ak = s.readAccent();
@@ -329,6 +344,117 @@ class AppState extends ChangeNotifier {
   void deleteWeightLog(int timestamp) {
     weightLogs = weightLogs.where((w) => w.timestamp != timestamp).toList();
     storage.writeWeightLogs(weightLogs);
+    notifyListeners();
+  }
+
+  // --- Profile ---
+  void updateProfile({String? name, String? dob, String? phone, String? currencySymbol}) {
+    profile = profile.copyWith(
+      name: (name == null || name.trim().isEmpty) ? null : name.trim(),
+      dob: (dob == null || dob.trim().isEmpty) ? null : dob.trim(),
+      phone: (phone == null || phone.trim().isEmpty) ? null : phone.trim(),
+      clearName: name == null || name.trim().isEmpty,
+      clearDob: dob == null || dob.trim().isEmpty,
+      clearPhone: phone == null || phone.trim().isEmpty,
+      currencySymbol: (currencySymbol == null || currencySymbol.trim().isEmpty)
+          ? null
+          : currencySymbol.trim(),
+    );
+    storage.writeProfile(profile);
+    notifyListeners();
+  }
+
+  // --- Notes CRUD ---
+  void addNote({required String title, required String body}) {
+    final id = DateTime.now().millisecondsSinceEpoch;
+    notes = [Note(id: id, title: title, body: body, createdAt: id), ...notes];
+    storage.writeNotes(notes);
+    notifyListeners();
+  }
+
+  void editNote(Note updated) {
+    notes = notes.map((n) => n.id == updated.id ? updated : n).toList();
+    storage.writeNotes(notes);
+    notifyListeners();
+  }
+
+  void deleteNote(int id) {
+    notes = notes.where((n) => n.id != id).toList();
+    storage.writeNotes(notes);
+    notifyListeners();
+  }
+
+  // --- Saved links CRUD ---
+  void addLink({required String title, required String url}) {
+    final id = DateTime.now().millisecondsSinceEpoch;
+    links = [SavedLink(id: id, title: title, url: url, createdAt: id), ...links];
+    storage.writeLinks(links);
+    notifyListeners();
+  }
+
+  void editLink(SavedLink updated) {
+    links = links.map((l) => l.id == updated.id ? updated : l).toList();
+    storage.writeLinks(links);
+    notifyListeners();
+  }
+
+  void deleteLink(int id) {
+    links = links.where((l) => l.id != id).toList();
+    storage.writeLinks(links);
+    notifyListeners();
+  }
+
+  // --- Vault CRUD ---
+  void addVaultEntry({
+    required String title,
+    String? username,
+    required String password,
+    String? url,
+    String? note,
+  }) {
+    final id = DateTime.now().millisecondsSinceEpoch;
+    vault = [
+      VaultEntry(
+        id: id, title: title, username: username, password: password,
+        url: url, note: note, createdAt: id,
+      ),
+      ...vault,
+    ];
+    storage.writeVault(vault);
+    notifyListeners();
+  }
+
+  void editVaultEntry(VaultEntry updated) {
+    vault = vault.map((v) => v.id == updated.id ? updated : v).toList();
+    storage.writeVault(vault);
+    notifyListeners();
+  }
+
+  void deleteVaultEntry(int id) {
+    vault = vault.where((v) => v.id != id).toList();
+    storage.writeVault(vault);
+    notifyListeners();
+  }
+
+  // --- Full reload (used by import) ---
+  Future<void> reloadFromStorage() async {
+    tasks = storage.readTasks() ?? [];
+    debts = storage.readDebts() ?? [];
+    events = storage.readEvents() ?? [];
+    gym = storage.readGym() ?? gym;
+    snapshots = storage.readSnapshots() ?? snapshots;
+    weightLogs = storage.readWeightLogs() ?? [];
+    profile = storage.readProfile() ?? profile;
+    notes = storage.readNotes() ?? [];
+    links = storage.readLinks() ?? [];
+    vault = storage.readVault() ?? [];
+    final ak = storage.readAccent();
+    final dk = storage.readDark();
+    final accent = AccentKey.values.firstWhere(
+      (e) => e.name == ak,
+      orElse: () => theme.accentKey,
+    );
+    theme = theme.copyWith(accentKey: accent, dark: dk ?? theme.dark);
     notifyListeners();
   }
 

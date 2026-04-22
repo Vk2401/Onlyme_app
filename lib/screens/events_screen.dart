@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/header.dart';
 import '../widgets/primitives.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/confirm_sheet.dart';
 
 const _eventIconKeys = [
   'gift', 'sparkle', 'calendar', 'heart', 'utensils', 'camera',
@@ -32,6 +33,7 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final theme = state.theme;
+    final cur = state.profile.currencySymbol;
     final events = state.events;
 
     if (events.isEmpty) {
@@ -156,7 +158,7 @@ class _EventsScreenState extends State<EventsScreen> {
             Expanded(child: AppCard(theme: theme, pad: 14, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
               Text('BUDGET', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.muted, letterSpacing: 0.8)),
               const SizedBox(height: 4),
-              Text('₹${_fmt(ev.totalEst)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.ink, letterSpacing: -0.4)),
+              Text('$cur${_fmt(ev.totalEst)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.ink, letterSpacing: -0.4)),
             ]))),
             const SizedBox(width: 10),
             Expanded(child: AppCard(
@@ -169,7 +171,7 @@ class _EventsScreenState extends State<EventsScreen> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                 Text('SPENT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.accent, letterSpacing: 0.8)),
                 const SizedBox(height: 4),
-                Text('₹${_fmt(ev.totalActual)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.accent, letterSpacing: -0.4)),
+                Text('$cur${_fmt(ev.totalActual)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.accent, letterSpacing: -0.4)),
               ]),
             )),
           ]),
@@ -223,8 +225,15 @@ class _EventsScreenState extends State<EventsScreen> {
             _openEventSheet(context, event: e);
           }),
           const SizedBox(height: 4),
-          _OptionRow(icon: LucideIcons.trash2, label: 'Delete event', color: theme.danger, onTap: () {
+          _OptionRow(icon: LucideIcons.trash2, label: 'Delete event', color: theme.danger, onTap: () async {
             Navigator.pop(context);
+            final ok = await confirmDelete(
+              context,
+              title: 'Delete event?',
+              message: '${e.title} · ${e.items.length} items',
+            );
+            if (!ok) return;
+            if (!context.mounted) return;
             context.read<AppState>().deleteEvent(e.id);
             setState(() => openId = null);
           }),
@@ -274,6 +283,11 @@ class _DismissibleItem extends StatelessWidget {
         decoration: BoxDecoration(color: theme.danger, borderRadius: BorderRadius.circular(18)),
         child: const Icon(LucideIcons.trash2, color: Colors.white, size: 20),
       ),
+      confirmDismiss: (_) => confirmDelete(
+        context,
+        title: 'Delete checklist item?',
+        message: it.label,
+      ),
       onDismissed: (_) => context.read<AppState>().deleteEventItem(event.id, it.id),
       child: GestureDetector(
         onLongPress: () => _openEditActualSheet(context),
@@ -286,7 +300,9 @@ class _DismissibleItem extends StatelessWidget {
   }
 
   void _openEditActualSheet(BuildContext context) {
-    final theme = context.read<AppState>().theme;
+    final state = context.read<AppState>();
+    final theme = state.theme;
+    final cur = state.profile.currencySymbol;
     final ctrl = TextEditingController(text: it.actual > 0 ? it.actual.toString() : '');
     showModalBottomSheet<void>(
       context: context,
@@ -313,7 +329,7 @@ class _DismissibleItem extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12)),
               child: Row(children: [
-                Text('₹', style: TextStyle(fontSize: 22, color: theme.muted, fontWeight: FontWeight.w600)),
+                Text(cur, style: TextStyle(fontSize: 22, color: theme.muted, fontWeight: FontWeight.w600)),
                 const SizedBox(width: 8),
                 Expanded(child: TextField(
                   controller: ctrl,
@@ -353,8 +369,9 @@ class _EventItemRow extends StatelessWidget {
   const _EventItemRow({required this.it, required this.event});
   @override
   Widget build(BuildContext context) {
-    final state = context.read<AppState>();
+    final state = context.watch<AppState>();
     final theme = state.theme;
+    final cur = state.profile.currencySymbol;
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 250),
       opacity: it.done ? 0.55 : 1,
@@ -365,8 +382,8 @@ class _EventItemRow extends StatelessWidget {
           Text(it.label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.1, decoration: it.done ? TextDecoration.lineThrough : null)),
           const SizedBox(height: 2),
           Text.rich(TextSpan(children: [
-            TextSpan(text: 'est ₹${_fmt(it.est)}', style: TextStyle(fontSize: 11, color: theme.muted)),
-            if (it.actual > 0) TextSpan(text: ' · spent ₹${_fmt(it.actual)}', style: TextStyle(fontSize: 11, color: theme.accent)),
+            TextSpan(text: 'est $cur${_fmt(it.est)}', style: TextStyle(fontSize: 11, color: theme.muted)),
+            if (it.actual > 0) TextSpan(text: ' · spent $cur${_fmt(it.actual)}', style: TextStyle(fontSize: 11, color: theme.accent)),
           ])),
         ])),
         Icon(LucideIcons.pencil, size: 14, color: theme.muted),
@@ -559,7 +576,9 @@ class _EventItemSheetState extends State<_EventItemSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.read<AppState>().theme;
+    final state = context.read<AppState>();
+    final theme = state.theme;
+    final cur = state.profile.currencySymbol;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Container(
@@ -576,7 +595,7 @@ class _EventItemSheetState extends State<_EventItemSheet> {
           const SizedBox(height: 18),
           _EField(theme: theme, hint: 'Item name (e.g. Hotel booking)', controller: _label, autofocus: true),
           const SizedBox(height: 10),
-          _EField(theme: theme, hint: 'Estimated cost (₹)', controller: _est, keyboardType: TextInputType.number),
+          _EField(theme: theme, hint: 'Estimated cost ($cur)', controller: _est, keyboardType: TextInputType.number),
           const SizedBox(height: 22),
           GestureDetector(
             onTap: () {
