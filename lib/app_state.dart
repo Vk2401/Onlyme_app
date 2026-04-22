@@ -1,8 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'models/task.dart';
 import 'models/debt.dart';
 import 'models/event.dart';
 import 'models/gym.dart';
+import 'models/snapshot.dart';
+import 'models/weight_entry.dart';
 import 'storage/local_storage.dart';
 import 'data/seed_data.dart';
 import 'theme/app_theme.dart';
@@ -14,10 +16,11 @@ class AppState extends ChangeNotifier {
   late List<Debt> debts;
   late List<PlannedEvent> events;
   late GymPlan gym;
+  late Map<String, List<Snapshot>> snapshots;
+  late List<WeightEntry> weightLogs;
 
   String screen = 'home';
   AppTheme theme = AppTheme.build(dark: true, accentKey: AccentKey.mint);
-
   DateTime? lastSyncAt;
 
   AppState._(this.storage);
@@ -25,10 +28,12 @@ class AppState extends ChangeNotifier {
   static Future<AppState> load() async {
     final s = await LocalStorage.open();
     final state = AppState._(s);
-    state.tasks = s.readTasks() ?? List<TaskItem>.from(seedTasks);
-    state.debts = s.readDebts() ?? List<Debt>.from(seedDebts);
-    state.events = s.readEvents() ?? List<PlannedEvent>.from(seedEvents);
+    state.tasks = s.readTasks() ?? List.from(seedTasks);
+    state.debts = s.readDebts() ?? List.from(seedDebts);
+    state.events = s.readEvents() ?? List.from(seedEvents);
     state.gym = s.readGym() ?? seedGymPlan;
+    state.snapshots = s.readSnapshots() ?? Map.from(seedSnapshots);
+    state.weightLogs = s.readWeightLogs() ?? List.from(seedWeightLogs);
     state.screen = s.readScreen() ?? 'home';
 
     final ak = s.readAccent();
@@ -64,14 +69,68 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Tasks ---
+  // --- Tasks CRUD ---
+  void addTask({
+    required String title,
+    required String time,
+    required String cat,
+    required String icon,
+    required Color color,
+  }) {
+    final id = DateTime.now().millisecondsSinceEpoch;
+    tasks = [
+      ...tasks,
+      TaskItem(id: id, title: title, time: time, cat: cat, icon: icon, color: color, done: false, streak: 0),
+    ];
+    storage.writeTasks(tasks);
+    notifyListeners();
+  }
+
+  void editTask(TaskItem updated) {
+    tasks = tasks.map((t) => t.id == updated.id ? updated : t).toList();
+    storage.writeTasks(tasks);
+    notifyListeners();
+  }
+
   void toggleTask(int id) {
     tasks = tasks.map((t) => t.id == id ? t.copyWith(done: !t.done) : t).toList();
     storage.writeTasks(tasks);
     notifyListeners();
   }
 
-  // --- Debts ---
+  void deleteTask(int id) {
+    tasks = tasks.where((t) => t.id != id).toList();
+    storage.writeTasks(tasks);
+    notifyListeners();
+  }
+
+  // --- Debts CRUD ---
+  void addDebt({
+    required String person,
+    required DebtType type,
+    required int total,
+    required String due,
+    required String note,
+  }) {
+    final id = DateTime.now().millisecondsSinceEpoch;
+    debts = [
+      ...debts,
+      Debt(id: id, person: person, type: type, total: total, paid: 0, due: due, note: note),
+    ];
+    storage.writeDebts(debts);
+    notifyListeners();
+  }
+
+  void editDebt(Debt updated) {
+    // Clamp paid to new total if total was reduced
+    final clamped = updated.paid > updated.total
+        ? updated.copyWith(paid: updated.total, settled: true)
+        : updated;
+    debts = debts.map((d) => d.id == clamped.id ? clamped : d).toList();
+    storage.writeDebts(debts);
+    notifyListeners();
+  }
+
   void payDebt(int id, int amount) {
     debts = debts.map((d) {
       if (d.id != id) return d;
@@ -82,7 +141,41 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Events ---
+  void deleteDebt(int id) {
+    debts = debts.where((d) => d.id != id).toList();
+    storage.writeDebts(debts);
+    notifyListeners();
+  }
+
+  // --- Events CRUD ---
+  void addEvent({
+    required String title,
+    required String date,
+    required int daysAway,
+    required String icon,
+    required Color color,
+  }) {
+    final id = DateTime.now().millisecondsSinceEpoch;
+    events = [
+      ...events,
+      PlannedEvent(id: id, title: title, date: date, daysAway: daysAway, icon: icon, color: color, items: []),
+    ];
+    storage.writeEvents(events);
+    notifyListeners();
+  }
+
+  void editEvent(PlannedEvent updated) {
+    events = events.map((e) => e.id == updated.id ? updated : e).toList();
+    storage.writeEvents(events);
+    notifyListeners();
+  }
+
+  void deleteEvent(int id) {
+    events = events.where((e) => e.id != id).toList();
+    storage.writeEvents(events);
+    notifyListeners();
+  }
+
   void toggleEventItem(int eventId, int itemId) {
     events = events.map((e) {
       if (e.id != eventId) return e;
@@ -101,21 +194,141 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Gym ---
+  void addEventItem(int eventId, {required String label, required int est}) {
+    final itemId = DateTime.now().millisecondsSinceEpoch;
+    events = events.map((e) {
+      if (e.id != eventId) return e;
+      return e.copyWith(items: [...e.items, EventItem(id: itemId, label: label, est: est, actual: 0, done: false)]);
+    }).toList();
+    storage.writeEvents(events);
+    notifyListeners();
+  }
+
+  void editEventItem(int eventId, EventItem updated) {
+    events = events.map((e) {
+      if (e.id != eventId) return e;
+      return e.copyWith(items: e.items.map((it) => it.id == updated.id ? updated : it).toList());
+    }).toList();
+    storage.writeEvents(events);
+    notifyListeners();
+  }
+
+  void deleteEventItem(int eventId, int itemId) {
+    events = events.map((e) {
+      if (e.id != eventId) return e;
+      return e.copyWith(items: e.items.where((it) => it.id != itemId).toList());
+    }).toList();
+    storage.writeEvents(events);
+    notifyListeners();
+  }
+
+  // --- Gym CRUD ---
+  void addExercise(int dayId, {required String name, required int sets, required String reps, required String weight}) {
+    gym = gym.copyWith(
+      days: gym.days.map((d) {
+        if (d.id != dayId) return d;
+        return d.copyWith(exercises: [...d.exercises, Exercise(name: name, sets: sets, reps: reps, weight: weight, done: false)]);
+      }).toList(),
+    );
+    storage.writeGym(gym);
+    notifyListeners();
+  }
+
+  void editExercise(int dayId, int exIndex, Exercise updated) {
+    gym = gym.copyWith(
+      days: gym.days.map((d) {
+        if (d.id != dayId) return d;
+        final exs = List<Exercise>.from(d.exercises);
+        exs[exIndex] = updated;
+        return d.copyWith(exercises: exs);
+      }).toList(),
+    );
+    storage.writeGym(gym);
+    notifyListeners();
+  }
+
   void toggleExercise(int dayId, int exIndex) {
     gym = gym.copyWith(
       days: gym.days.map((day) {
         if (day.id != dayId) return day;
         final updated = <Exercise>[];
         for (var i = 0; i < day.exercises.length; i++) {
-          updated.add(i == exIndex
-              ? day.exercises[i].copyWith(done: !day.exercises[i].done)
-              : day.exercises[i]);
+          updated.add(i == exIndex ? day.exercises[i].copyWith(done: !day.exercises[i].done) : day.exercises[i]);
         }
         return day.copyWith(exercises: updated);
       }).toList(),
     );
     storage.writeGym(gym);
+    notifyListeners();
+  }
+
+  void deleteExercise(int dayId, int exIndex) {
+    gym = gym.copyWith(
+      days: gym.days.map((d) {
+        if (d.id != dayId) return d;
+        final exs = List<Exercise>.from(d.exercises)..removeAt(exIndex);
+        return d.copyWith(exercises: exs);
+      }).toList(),
+    );
+    storage.writeGym(gym);
+    notifyListeners();
+  }
+
+  void editGymPlanName(String name) {
+    gym = gym.copyWith(name: name);
+    storage.writeGym(gym);
+    notifyListeners();
+  }
+
+  void editGymDayLabel(int dayId, String label) {
+    gym = gym.copyWith(
+      days: gym.days.map((d) => d.id == dayId ? d.copyWith(label: label) : d).toList(),
+    );
+    storage.writeGym(gym);
+    notifyListeners();
+  }
+
+  void markDayDone(int dayId, bool done) {
+    gym = gym.copyWith(
+      days: gym.days.map((d) => d.id == dayId ? d.copyWith(done: done) : d).toList(),
+    );
+    storage.writeGym(gym);
+    notifyListeners();
+  }
+
+  // --- Snapshots CRUD ---
+  void addSnapshot(String cat, {required String note, required int hue}) {
+    final id = DateTime.now().millisecondsSinceEpoch;
+    final now = DateTime.now();
+    final dateStr = '${_monthAbbr(now.month)} ${now.day}';
+    final snap = Snapshot(id: id, date: dateStr, note: note, hue: hue);
+    snapshots = Map.from(snapshots)..[cat] = [snap, ...(snapshots[cat] ?? [])];
+    storage.writeSnapshots(snapshots);
+    notifyListeners();
+  }
+
+  void deleteSnapshot(String cat, int id) {
+    snapshots = Map.from(snapshots)..[cat] = (snapshots[cat] ?? []).where((s) => s.id != id).toList();
+    storage.writeSnapshots(snapshots);
+    notifyListeners();
+  }
+
+  // --- Weight log ---
+  void logWeight(double kg) {
+    final now = DateTime.now();
+    final entry = WeightEntry(
+      timestamp: now.millisecondsSinceEpoch,
+      kg: kg,
+      dateStr: '${_monthAbbr(now.month)} ${now.day}',
+    );
+    weightLogs = [...weightLogs, entry];
+    storage.writeWeightLogs(weightLogs);
+    notifyListeners();
+  }
+
+  void deleteWeightLog(int timestamp) {
+    weightLogs = weightLogs.where((w) => w.timestamp != timestamp).toList();
+    storage.writeWeightLogs(weightLogs);
     notifyListeners();
   }
 
@@ -125,5 +338,10 @@ class AppState extends ChangeNotifier {
     lastSyncAt = DateTime.now();
     await storage.writeLastSync(lastSyncAt!.toIso8601String());
     notifyListeners();
+  }
+
+  static String _monthAbbr(int month) {
+    const abbrs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return abbrs[month - 1];
   }
 }

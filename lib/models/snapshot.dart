@@ -6,6 +6,9 @@ class Snapshot {
 
   const Snapshot({required this.id, required this.date, required this.note, required this.hue});
 
+  Snapshot copyWith({String? note, int? hue}) =>
+      Snapshot(id: id, date: date, note: note ?? this.note, hue: hue ?? this.hue);
+
   Map<String, dynamic> toJson() => {'id': id, 'date': date, 'note': note, 'hue': hue};
 
   factory Snapshot.fromJson(Map<String, dynamic> j) => Snapshot(
