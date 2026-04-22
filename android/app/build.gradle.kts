@@ -8,11 +8,17 @@ plugins {
 android {
     namespace = "com.webronic.onlyme"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Some plugins (flutter_local_notifications, share_plus, file_picker) require
+    // a newer NDK than Flutter's default. Pinning the latest keeps CI + local
+    // in sync and is backward-compatible per Android's NDK contract.
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications uses java.time APIs that need desugaring
+        // on pre-API-26 Android. Required by the plugin per its README.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -41,4 +47,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
