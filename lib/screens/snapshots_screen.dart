@@ -60,7 +60,7 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
                 child: Column(children: [
                   Icon(LucideIcons.camera, size: 40, color: theme.muted),
                   const SizedBox(height: 12),
-                  Text('No ${cat} snapshots yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.ink)),
+                  Text('No $cat snapshots yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.ink)),
                   const SizedBox(height: 6),
                   Text('Tap the camera button to add one', style: TextStyle(fontSize: 13, color: theme.muted)),
                   const SizedBox(height: 18),
