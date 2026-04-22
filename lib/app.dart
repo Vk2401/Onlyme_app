@@ -13,7 +13,6 @@ import 'screens/snapshots_screen.dart';
 import 'screens/more_screen.dart';
 import 'screens/placeholder_screen.dart';
 import 'widgets/bottom_nav.dart';
-import 'widgets/status_bar.dart';
 import 'widgets/tweaks_sheet.dart';
 import 'widgets/add_sheet.dart';
 
@@ -108,7 +107,6 @@ class _AppShellState extends State<AppShell> {
             child: Container(
               color: theme.bg,
               child: Column(children: [
-                PhoneStatusBar(theme: theme),
                 Expanded(
                   child: _ScreenSwitcher(
                     child: Container(

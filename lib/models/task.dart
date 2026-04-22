@@ -21,13 +21,22 @@ class TaskItem {
     required this.streak,
   });
 
-  TaskItem copyWith({bool? done, int? streak}) => TaskItem(
+  TaskItem copyWith({
+    String? title,
+    String? time,
+    String? cat,
+    String? icon,
+    Color? color,
+    bool? done,
+    int? streak,
+  }) =>
+      TaskItem(
         id: id,
-        title: title,
-        time: time,
-        cat: cat,
-        icon: icon,
-        color: color,
+        title: title ?? this.title,
+        time: time ?? this.time,
+        cat: cat ?? this.cat,
+        icon: icon ?? this.icon,
+        color: color ?? this.color,
         done: done ?? this.done,
         streak: streak ?? this.streak,
       );

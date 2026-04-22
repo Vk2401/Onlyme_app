@@ -15,10 +15,11 @@ class EventItem {
     required this.done,
   });
 
-  EventItem copyWith({bool? done, int? actual}) => EventItem(
+  EventItem copyWith({String? label, int? est, int? actual, bool? done}) =>
+      EventItem(
         id: id,
-        label: label,
-        est: est,
+        label: label ?? this.label,
+        est: est ?? this.est,
         actual: actual ?? this.actual,
         done: done ?? this.done,
       );
@@ -59,13 +60,21 @@ class PlannedEvent {
     required this.items,
   });
 
-  PlannedEvent copyWith({List<EventItem>? items}) => PlannedEvent(
+  PlannedEvent copyWith({
+    String? title,
+    String? date,
+    int? daysAway,
+    String? icon,
+    Color? color,
+    List<EventItem>? items,
+  }) =>
+      PlannedEvent(
         id: id,
-        title: title,
-        date: date,
-        daysAway: daysAway,
-        icon: icon,
-        color: color,
+        title: title ?? this.title,
+        date: date ?? this.date,
+        daysAway: daysAway ?? this.daysAway,
+        icon: icon ?? this.icon,
+        color: color ?? this.color,
         items: items ?? this.items,
       );
 
@@ -90,6 +99,8 @@ class PlannedEvent {
         daysAway: j['daysAway'] as int,
         icon: j['icon'] as String,
         color: Color(j['color'] as int),
-        items: (j['items'] as List).map((e) => EventItem.fromJson(e as Map<String, dynamic>)).toList(),
+        items: (j['items'] as List)
+            .map((e) => EventItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 }

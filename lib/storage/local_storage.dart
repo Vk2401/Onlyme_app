@@ -4,6 +4,8 @@ import '../models/task.dart';
 import '../models/debt.dart';
 import '../models/event.dart';
 import '../models/gym.dart';
+import '../models/snapshot.dart';
+import '../models/weight_entry.dart';
 
 class LocalStorage {
   static const _kTasks = 'onlyme:tasks';
@@ -14,6 +16,8 @@ class LocalStorage {
   static const _kAccent = 'onlyme:accent';
   static const _kDark = 'onlyme:dark';
   static const _kLastSync = 'onlyme:lastSync';
+  static const _kSnapshots = 'onlyme:snapshots';
+  static const _kWeight = 'onlyme:weight';
 
   final SharedPreferences _p;
   LocalStorage(this._p);
@@ -29,6 +33,7 @@ class LocalStorage {
     final list = jsonDecode(raw) as List;
     return list.map((e) => TaskItem.fromJson(e as Map<String, dynamic>)).toList();
   }
+
   Future<void> writeTasks(List<TaskItem> tasks) =>
       _p.setString(_kTasks, jsonEncode(tasks.map((t) => t.toJson()).toList()));
 
@@ -39,6 +44,7 @@ class LocalStorage {
     final list = jsonDecode(raw) as List;
     return list.map((e) => Debt.fromJson(e as Map<String, dynamic>)).toList();
   }
+
   Future<void> writeDebts(List<Debt> debts) =>
       _p.setString(_kDebts, jsonEncode(debts.map((t) => t.toJson()).toList()));
 
@@ -49,6 +55,7 @@ class LocalStorage {
     final list = jsonDecode(raw) as List;
     return list.map((e) => PlannedEvent.fromJson(e as Map<String, dynamic>)).toList();
   }
+
   Future<void> writeEvents(List<PlannedEvent> events) =>
       _p.setString(_kEvents, jsonEncode(events.map((t) => t.toJson()).toList()));
 
@@ -58,7 +65,36 @@ class LocalStorage {
     if (raw == null) return null;
     return GymPlan.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
+
   Future<void> writeGym(GymPlan plan) => _p.setString(_kGym, jsonEncode(plan.toJson()));
+
+  // --- Snapshots ---
+  Map<String, List<Snapshot>>? readSnapshots() {
+    final raw = _p.getString(_kSnapshots);
+    if (raw == null) return null;
+    final map = jsonDecode(raw) as Map<String, dynamic>;
+    return map.map((k, v) => MapEntry(
+          k,
+          (v as List).map((e) => Snapshot.fromJson(e as Map<String, dynamic>)).toList(),
+        ));
+  }
+
+  Future<void> writeSnapshots(Map<String, List<Snapshot>> snaps) =>
+      _p.setString(
+        _kSnapshots,
+        jsonEncode(snaps.map((k, v) => MapEntry(k, v.map((s) => s.toJson()).toList()))),
+      );
+
+  // --- Weight log ---
+  List<WeightEntry>? readWeightLogs() {
+    final raw = _p.getString(_kWeight);
+    if (raw == null) return null;
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => WeightEntry.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> writeWeightLogs(List<WeightEntry> logs) =>
+      _p.setString(_kWeight, jsonEncode(logs.map((e) => e.toJson()).toList()));
 
   // --- Screen ---
   String? readScreen() => _p.getString(_kScreen);
@@ -71,7 +107,7 @@ class LocalStorage {
   bool? readDark() => _p.getBool(_kDark);
   Future<void> writeDark(bool b) => _p.setBool(_kDark, b);
 
-  // --- Sync stamp (placeholder for future remote sync) ---
+  // --- Sync stamp ---
   String? readLastSync() => _p.getString(_kLastSync);
   Future<void> writeLastSync(String iso) => _p.setString(_kLastSync, iso);
 }

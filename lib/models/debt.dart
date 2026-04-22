@@ -21,17 +21,26 @@ class Debt {
     this.settled = false,
   });
 
-  int get remain => total - paid;
+  int get remain => (total - paid).clamp(0, total);
   double get pct => total == 0 ? 0 : paid / total;
 
-  Debt copyWith({int? paid, bool? settled}) => Debt(
+  Debt copyWith({
+    String? person,
+    DebtType? type,
+    int? total,
+    int? paid,
+    String? due,
+    String? note,
+    bool? settled,
+  }) =>
+      Debt(
         id: id,
-        person: person,
-        type: type,
-        total: total,
+        person: person ?? this.person,
+        type: type ?? this.type,
+        total: total ?? this.total,
         paid: paid ?? this.paid,
-        due: due,
-        note: note,
+        due: due ?? this.due,
+        note: note ?? this.note,
         settled: settled ?? this.settled,
       );
 

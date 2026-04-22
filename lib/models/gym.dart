@@ -13,11 +13,12 @@ class Exercise {
     required this.done,
   });
 
-  Exercise copyWith({bool? done}) => Exercise(
-        name: name,
-        sets: sets,
-        reps: reps,
-        weight: weight,
+  Exercise copyWith({String? name, int? sets, String? reps, String? weight, bool? done}) =>
+      Exercise(
+        name: name ?? this.name,
+        sets: sets ?? this.sets,
+        reps: reps ?? this.reps,
+        weight: weight ?? this.weight,
         done: done ?? this.done,
       );
 
@@ -55,10 +56,10 @@ class GymDay {
     required this.exercises,
   });
 
-  GymDay copyWith({List<Exercise>? exercises, bool? done}) => GymDay(
+  GymDay copyWith({String? label, List<Exercise>? exercises, bool? done}) => GymDay(
         id: id,
         short: short,
-        label: label,
+        label: label ?? this.label,
         today: today,
         done: done ?? this.done,
         exercises: exercises ?? this.exercises,
@@ -79,7 +80,9 @@ class GymDay {
         label: j['label'] as String,
         today: j['today'] as bool? ?? false,
         done: j['done'] as bool,
-        exercises: (j['exercises'] as List).map((e) => Exercise.fromJson(e as Map<String, dynamic>)).toList(),
+        exercises: (j['exercises'] as List)
+            .map((e) => Exercise.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 }
 
@@ -89,7 +92,8 @@ class GymPlan {
 
   const GymPlan({required this.name, required this.days});
 
-  GymPlan copyWith({List<GymDay>? days}) => GymPlan(name: name, days: days ?? this.days);
+  GymPlan copyWith({String? name, List<GymDay>? days}) =>
+      GymPlan(name: name ?? this.name, days: days ?? this.days);
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -98,6 +102,8 @@ class GymPlan {
 
   factory GymPlan.fromJson(Map<String, dynamic> j) => GymPlan(
         name: j['name'] as String,
-        days: (j['days'] as List).map((d) => GymDay.fromJson(d as Map<String, dynamic>)).toList(),
+        days: (j['days'] as List)
+            .map((d) => GymDay.fromJson(d as Map<String, dynamic>))
+            .toList(),
       );
 }
