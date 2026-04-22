@@ -9,6 +9,7 @@ import 'models/profile.dart';
 import 'models/note.dart';
 import 'models/saved_link.dart';
 import 'models/vault_entry.dart';
+import 'services/notifications_service.dart';
 import 'storage/local_storage.dart';
 import 'data/seed_data.dart';
 import 'theme/app_theme.dart';
@@ -64,6 +65,35 @@ class AppState extends ChangeNotifier {
     return state;
   }
 
+  /// Re-plan every task/event notification that is still in the future.
+  /// Called from main() after NotificationsService.init() so a clean install
+  /// (or first launch after an OS update that cleared pending alarms) restores
+  /// every scheduled reminder.
+  Future<void> replayScheduledNotifications() async {
+    final svc = NotificationsService.instance;
+    final now = DateTime.now();
+    for (final t in tasks) {
+      if (!t.done && t.scheduledAt != null && t.scheduledAt!.isAfter(now)) {
+        await svc.scheduleTask(
+          id: t.id,
+          title: t.title,
+          body: t.cat.isEmpty ? null : t.cat,
+          at: t.scheduledAt!,
+        );
+      }
+    }
+    for (final e in events) {
+      if (e.scheduledAt != null && e.scheduledAt!.isAfter(now)) {
+        await svc.scheduleEvent(
+          id: e.id,
+          title: e.title,
+          body: e.date,
+          at: e.scheduledAt!,
+        );
+      }
+    }
+  }
+
   // --- Screen ---
   void setScreen(String s) {
     screen = s;
@@ -91,32 +121,54 @@ class AppState extends ChangeNotifier {
     required String cat,
     required String icon,
     required Color color,
+    DateTime? scheduledAt,
   }) {
     final id = DateTime.now().millisecondsSinceEpoch;
-    tasks = [
-      ...tasks,
-      TaskItem(id: id, title: title, time: time, cat: cat, icon: icon, color: color, done: false, streak: 0),
-    ];
+    final task = TaskItem(
+      id: id, title: title, time: time, cat: cat, icon: icon, color: color,
+      done: false, streak: 0, scheduledAt: scheduledAt,
+    );
+    tasks = [...tasks, task];
     storage.writeTasks(tasks);
+    _rescheduleTask(task);
     notifyListeners();
   }
 
   void editTask(TaskItem updated) {
     tasks = tasks.map((t) => t.id == updated.id ? updated : t).toList();
     storage.writeTasks(tasks);
+    _rescheduleTask(updated);
     notifyListeners();
   }
 
   void toggleTask(int id) {
     tasks = tasks.map((t) => t.id == id ? t.copyWith(done: !t.done) : t).toList();
     storage.writeTasks(tasks);
+    // Completed tasks cancel their reminder; uncompleted re-activate.
+    final t = tasks.firstWhere((t) => t.id == id);
+    _rescheduleTask(t);
     notifyListeners();
   }
 
   void deleteTask(int id) {
     tasks = tasks.where((t) => t.id != id).toList();
     storage.writeTasks(tasks);
+    NotificationsService.instance.cancelTask(id);
     notifyListeners();
+  }
+
+  void _rescheduleTask(TaskItem t) {
+    final svc = NotificationsService.instance;
+    if (t.done || t.scheduledAt == null) {
+      svc.cancelTask(t.id);
+      return;
+    }
+    svc.scheduleTask(
+      id: t.id,
+      title: t.title,
+      body: t.cat.isEmpty ? null : t.cat,
+      at: t.scheduledAt!,
+    );
   }
 
   // --- Debts CRUD ---
@@ -169,26 +221,45 @@ class AppState extends ChangeNotifier {
     required int daysAway,
     required String icon,
     required Color color,
+    DateTime? scheduledAt,
   }) {
     final id = DateTime.now().millisecondsSinceEpoch;
-    events = [
-      ...events,
-      PlannedEvent(id: id, title: title, date: date, daysAway: daysAway, icon: icon, color: color, items: []),
-    ];
+    final ev = PlannedEvent(
+      id: id, title: title, date: date, daysAway: daysAway, icon: icon,
+      color: color, items: [], scheduledAt: scheduledAt,
+    );
+    events = [...events, ev];
     storage.writeEvents(events);
+    _rescheduleEvent(ev);
     notifyListeners();
   }
 
   void editEvent(PlannedEvent updated) {
     events = events.map((e) => e.id == updated.id ? updated : e).toList();
     storage.writeEvents(events);
+    _rescheduleEvent(updated);
     notifyListeners();
   }
 
   void deleteEvent(int id) {
     events = events.where((e) => e.id != id).toList();
     storage.writeEvents(events);
+    NotificationsService.instance.cancelEvent(id);
     notifyListeners();
+  }
+
+  void _rescheduleEvent(PlannedEvent e) {
+    final svc = NotificationsService.instance;
+    if (e.scheduledAt == null) {
+      svc.cancelEvent(e.id);
+      return;
+    }
+    svc.scheduleEvent(
+      id: e.id,
+      title: e.title,
+      body: e.date,
+      at: e.scheduledAt!,
+    );
   }
 
   void toggleEventItem(int eventId, int itemId) {

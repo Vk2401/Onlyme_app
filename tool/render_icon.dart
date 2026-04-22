@@ -1,9 +1,11 @@
 // Headless icon renderer — runs via `flutter test tool/render_icon.dart`.
-// Paints the Only Me app icon at 1024x1024 and writes
-// assets/icon/app_icon.png (full-bleed) + assets/icon/app_icon_fg.png
-// (foreground glyph for Android adaptive icons, 432 safe-zone / 1024 canvas).
+// Paints the Only Me cartoon mascot at 1024x1024 and writes two PNGs:
+//   * assets/icon/app_icon.png        — full-bleed (mint→blue gradient bg + mascot)
+//   * assets/icon/app_icon_fg.png     — transparent foreground (mascot only) for
+//                                       the Android adaptive icon.
 
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,144 +51,220 @@ Future<void> _writePng({
   await file.writeAsBytes(bytes!.buffer.asUint8List(), flush: true);
 }
 
-// ── Full-bleed icon: gradient rounded square + foreground glyph ────────────
+// ── Full-bleed icon: gradient + mascot ─────────────────────────────────────
 
 class _FullIconPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
 
-    // Solid gradient background. iOS masks to its own corner radius, Android
-    // adaptive icon uses the separate foreground file — so we can paint edge
-    // to edge here.
-    final bg = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF5EEAD4), // mint
-          Color(0xFF2DD4BF),
-          Color(0xFF7C3AED), // violet accent2
-        ],
-        stops: [0.0, 0.55, 1.0],
-      ).createShader(rect);
-    canvas.drawRect(rect, bg);
-
-    // Soft highlight glow, top-left.
-    canvas.drawCircle(
-      Offset(size.width * 0.25, size.height * 0.2),
-      size.width * 0.55,
-      Paint()..shader = RadialGradient(
-        colors: [Colors.white.withOpacity(0.28), Colors.white.withOpacity(0.0)],
-      ).createShader(Rect.fromCircle(
-        center: Offset(size.width * 0.25, size.height * 0.2),
-        radius: size.width * 0.55,
-      )),
+    // Friendly mint → sky gradient. Less busy than a 3-stop rainbow so the
+    // mascot reads clearly.
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF6EE7C8), Color(0xFF3DC4F2)],
+        ).createShader(rect),
     );
 
-    _paintGlyph(canvas, size);
+    // Soft top-left highlight for subtle depth.
+    final hlCenter = Offset(size.width * 0.25, size.height * 0.22);
+    canvas.drawCircle(
+      hlCenter,
+      size.width * 0.55,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [Colors.white.withOpacity(0.32), Colors.white.withOpacity(0)],
+        ).createShader(Rect.fromCircle(center: hlCenter, radius: size.width * 0.55)),
+    );
+
+    // Decorative sparkles in the corners (playful feel, low contrast).
+    _drawSparkle(canvas, Offset(size.width * 0.82, size.height * 0.18), size.width * 0.055, Colors.white.withOpacity(0.85));
+    _drawSparkle(canvas, Offset(size.width * 0.16, size.height * 0.80), size.width * 0.040, Colors.white.withOpacity(0.75));
+    _drawSparkle(canvas, Offset(size.width * 0.88, size.height * 0.62), size.width * 0.028, Colors.white.withOpacity(0.65));
+
+    _paintMascot(canvas, size);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// Only the glyph + subtle shadow, no background (for Android adaptive fg).
 class _ForegroundOnlyPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    _paintGlyph(canvas, size);
+    _paintMascot(canvas, size);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Stylised "M" made from two thick rounded strokes, with a small checkmark
-/// badge at the bottom-right — conveys "Me" + "tracker/checklist".
-void _paintGlyph(Canvas canvas, Size size) {
+// ── Mascot ──────────────────────────────────────────────────────────────────
+
+/// A cute rounded-square face: cream body, big kawaii eyes with highlights,
+/// pink cheek blush, and a small smile. Sits roughly centre of the canvas,
+/// scaled so Android adaptive-icon masking (~20% inset) keeps the whole face
+/// visible.
+void _paintMascot(Canvas canvas, Size size) {
   final w = size.width;
   final h = size.height;
   final cx = w / 2;
-  final cy = h / 2;
+  final cy = h / 2 + h * 0.01; // ever so slightly below centre feels nicer
 
-  // Soft drop shadow pass — render the same path in low-alpha black offset.
-  void drawM(Paint paint) {
-    final strokeW = w * 0.14;
+  final faceSize = w * 0.58;
+  final faceRect = Rect.fromCenter(center: Offset(cx, cy), width: faceSize, height: faceSize);
+  final faceRRect = RRect.fromRectAndRadius(faceRect, Radius.circular(w * 0.15));
 
-    // Outer bounds of the M
-    final top = cy - w * 0.19;
-    final bot = cy + w * 0.19;
-    final left = cx - w * 0.23;
-    final right = cx + w * 0.23;
-    final midX = cx;
-    final dipY = cy + w * 0.02;
-
-    final p = Path()
-      ..moveTo(left, bot)
-      ..lineTo(left, top)
-      ..lineTo(midX, dipY)
-      ..lineTo(right, top)
-      ..lineTo(right, bot);
-
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeW
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..color = paint.color
-      ..maskFilter = paint.maskFilter;
-    canvas.drawPath(p, stroke);
-  }
-
-  // Shadow
-  canvas.save();
-  canvas.translate(0, h * 0.012);
-  drawM(Paint()
-    ..color = Colors.black.withOpacity(0.22)
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16));
-  canvas.restore();
-
-  // Main M — white with a tiny tint so it reads as soft, not stark
-  drawM(Paint()..color = const Color(0xFFFDFDFD));
-
-  // Checkmark badge in the bottom-right
-  final badgeCenter = Offset(cx + w * 0.20, cy + w * 0.23);
-  final badgeRadius = w * 0.11;
-
-  // Badge shadow
-  canvas.drawCircle(
-    badgeCenter.translate(0, h * 0.01),
-    badgeRadius,
+  // Drop shadow under the face.
+  canvas.drawRRect(
+    faceRRect.shift(Offset(0, h * 0.015)),
     Paint()
-      ..color = Colors.black.withOpacity(0.28)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+      ..color = Colors.black.withOpacity(0.22)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28),
   );
 
-  // Badge fill
-  canvas.drawCircle(
-    badgeCenter,
-    badgeRadius,
+  // Base cream fill with a subtle vertical gradient for depth.
+  canvas.drawRRect(
+    faceRRect,
     Paint()
       ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: const [Color(0xFF0F172A), Color(0xFF1F2937)],
-      ).createShader(Rect.fromCircle(center: badgeCenter, radius: badgeRadius)),
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [Color(0xFFFFF6E2), Color(0xFFFFE3B8)],
+      ).createShader(faceRect),
   );
 
-  // Check tick inside badge
-  final tick = Path()
-    ..moveTo(badgeCenter.dx - badgeRadius * 0.42, badgeCenter.dy + badgeRadius * 0.02)
-    ..lineTo(badgeCenter.dx - badgeRadius * 0.08, badgeCenter.dy + badgeRadius * 0.38)
-    ..lineTo(badgeCenter.dx + badgeRadius * 0.48, badgeCenter.dy - badgeRadius * 0.30);
+  // Subtle warm rim highlight along the top.
+  canvas.drawRRect(
+    faceRRect.deflate(w * 0.012),
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.007
+      ..color = Colors.white.withOpacity(0.55),
+  );
+
+  // Cheek blush — two soft pink circles.
+  final blushPaint = Paint()
+    ..color = const Color(0xFFFF9AA8).withOpacity(0.55)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+  final cheekY = cy + faceSize * 0.14;
+  canvas.drawCircle(Offset(cx - faceSize * 0.26, cheekY), faceSize * 0.10, blushPaint);
+  canvas.drawCircle(Offset(cx + faceSize * 0.26, cheekY), faceSize * 0.10, blushPaint);
+
+  // Eyes — big black rounded ovals, slightly squished for kawaii.
+  final eyeY = cy - faceSize * 0.08;
+  final eyeDx = faceSize * 0.19;
+  final eyeW = faceSize * 0.13;
+  final eyeH = faceSize * 0.18;
+
+  void drawEye(double offsetX) {
+    final eyeRect = Rect.fromCenter(
+      center: Offset(cx + offsetX, eyeY),
+      width: eyeW,
+      height: eyeH,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(eyeRect, Radius.circular(eyeW)),
+      Paint()..color = const Color(0xFF14141E),
+    );
+    // Small white highlight
+    canvas.drawCircle(
+      Offset(eyeRect.center.dx + eyeW * 0.18, eyeRect.center.dy - eyeH * 0.22),
+      eyeW * 0.22,
+      Paint()..color = Colors.white,
+    );
+    // Tiny secondary highlight
+    canvas.drawCircle(
+      Offset(eyeRect.center.dx - eyeW * 0.12, eyeRect.center.dy + eyeH * 0.18),
+      eyeW * 0.09,
+      Paint()..color = Colors.white.withOpacity(0.7),
+    );
+  }
+
+  drawEye(-eyeDx);
+  drawEye(eyeDx);
+
+  // Smile — a small upward curve.
+  final mouthY = cy + faceSize * 0.22;
+  final mouthW = faceSize * 0.22;
+  final mouthPath = Path()
+    ..moveTo(cx - mouthW / 2, mouthY)
+    ..quadraticBezierTo(cx, mouthY + faceSize * 0.09, cx + mouthW / 2, mouthY);
+
   canvas.drawPath(
-    tick,
+    mouthPath,
     Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = w * 0.022
-      ..color = const Color(0xFF5EEAD4),
+      ..color = const Color(0xFF14141E),
+  );
+
+  // Heart antenna / accessory on top — tiny heart over the forehead, gives
+  // the mascot a distinct "personal tracker" hook (you, cared for).
+  _drawHeart(
+    canvas: canvas,
+    center: Offset(cx, cy - faceSize * 0.58),
+    size: faceSize * 0.12,
+    color: const Color(0xFFFF6B8B),
   );
 }
+
+void _drawSparkle(Canvas canvas, Offset center, double radius, Color color) {
+  final p = Path();
+  const points = 4;
+  for (var i = 0; i < points * 2; i++) {
+    final angle = (i * 3.14159 / points) - 3.14159 / 2;
+    final r = i.isEven ? radius : radius * 0.35;
+    final x = center.dx + r * _cos(angle);
+    final y = center.dy + r * _sin(angle);
+    if (i == 0) {
+      p.moveTo(x, y);
+    } else {
+      p.lineTo(x, y);
+    }
+  }
+  p.close();
+  canvas.drawPath(p, Paint()..color = color);
+}
+
+void _drawHeart({required Canvas canvas, required Offset center, required double size, required Color color}) {
+  final w = size;
+  final h = size;
+  final path = Path();
+  path.moveTo(center.dx, center.dy + h * 0.35);
+  path.cubicTo(
+    center.dx + w * 0.6, center.dy,
+    center.dx + w * 0.6, center.dy - h * 0.55,
+    center.dx, center.dy - h * 0.15,
+  );
+  path.cubicTo(
+    center.dx - w * 0.6, center.dy - h * 0.55,
+    center.dx - w * 0.6, center.dy,
+    center.dx, center.dy + h * 0.35,
+  );
+  path.close();
+
+  // Shadow
+  canvas.drawPath(
+    path.shift(Offset(0, size * 0.08)),
+    Paint()
+      ..color = Colors.black.withOpacity(0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+  );
+  canvas.drawPath(path, Paint()..color = color);
+  // Tiny highlight
+  canvas.drawCircle(
+    Offset(center.dx - w * 0.15, center.dy - h * 0.18),
+    w * 0.09,
+    Paint()..color = Colors.white.withOpacity(0.75),
+  );
+}
+
+double _cos(double rad) => math.cos(rad);
+double _sin(double rad) => math.sin(rad);

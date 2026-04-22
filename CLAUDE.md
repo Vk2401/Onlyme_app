@@ -67,6 +67,7 @@ Full field reference in [`docs/models.md`](docs/models.md). Screen behaviour in 
 6. **Lint is intentionally relaxed** — `prefer_const_constructors` and `use_key_in_widget_constructors` are disabled; `deprecated_member_use` is suppressed. Don't add noise fixing those.
 7. **Font: `Plus Jakarta Sans`** via `google_fonts`, applied at `MaterialApp` level. Don't override per-widget.
 8. **Adding a new domain?** [`docs/contributing.md`](docs/contributing.md) walks through the six edits (model → storage → state → screen → routing → backup).
+9. **Scheduled reminders.** Tasks and events have an optional `scheduledAt: DateTime?`. The `NotificationsService` wrapper (`lib/services/notifications_service.dart`) schedules local OS notifications that fire even when the app is closed. Every CRUD mutator on AppState reschedules automatically — don't call the service from the UI directly. See [`docs/notifications.md`](docs/notifications.md).
 
 ## Roadmap-shaped holes
 

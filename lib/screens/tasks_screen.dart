@@ -226,6 +226,7 @@ class _TaskSheetState extends State<_TaskSheet> {
   late final TextEditingController _cat;
   late String _icon;
   late Color _color;
+  DateTime? _scheduledAt;
 
   @override
   void initState() {
@@ -236,6 +237,7 @@ class _TaskSheetState extends State<_TaskSheet> {
     _cat = TextEditingController(text: t?.cat ?? '');
     _icon = t?.icon ?? 'checkCircle';
     _color = t?.color ?? _colorPalette[0];
+    _scheduledAt = t?.scheduledAt;
   }
 
   @override
@@ -281,6 +283,19 @@ class _TaskSheetState extends State<_TaskSheet> {
               const SizedBox(width: 10),
               Expanded(child: _Field(theme: theme, hint: 'Category', controller: _cat)),
             ]),
+            const SizedBox(height: 10),
+
+            // Optional reminder (date + time picker)
+            _ReminderRow(
+              theme: theme,
+              value: _scheduledAt,
+              onChange: (v) => setState(() {
+                _scheduledAt = v;
+                if (v != null && _time.text.trim().isEmpty) {
+                  _time.text = _formatClock(v);
+                }
+              }),
+            ),
             const SizedBox(height: 16),
 
             // Icon picker
@@ -369,6 +384,8 @@ class _TaskSheetState extends State<_TaskSheet> {
         cat: _cat.text.trim(),
         icon: _icon,
         color: _color,
+        scheduledAt: _scheduledAt,
+        clearScheduledAt: _scheduledAt == null,
       ));
     } else {
       state.addTask(
@@ -377,10 +394,87 @@ class _TaskSheetState extends State<_TaskSheet> {
         cat: _cat.text.trim().isEmpty ? 'Personal' : _cat.text.trim(),
         icon: _icon,
         color: _color,
+        scheduledAt: _scheduledAt,
       );
     }
     Navigator.of(context).pop();
   }
+}
+
+class _ReminderRow extends StatelessWidget {
+  final AppTheme theme;
+  final DateTime? value;
+  final ValueChanged<DateTime?> onChange;
+  const _ReminderRow({required this.theme, required this.value, required this.onChange});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = value == null
+        ? 'No reminder'
+        : _formatReminder(value!);
+    return GestureDetector(
+      onTap: () => _pick(context),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12)),
+        child: Row(children: [
+          Icon(LucideIcons.bell, size: 18, color: theme.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: value == null ? theme.muted : theme.ink,
+              fontWeight: FontWeight.w500,
+            ),
+          )),
+          if (value != null)
+            GestureDetector(
+              onTap: () => onChange(null),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(LucideIcons.x, size: 16, color: theme.muted),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _pick(BuildContext context) async {
+    final now = DateTime.now();
+    final initialDate = value ?? now.add(const Duration(hours: 1));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isBefore(now) ? now : initialDate,
+      firstDate: now,
+      lastDate: DateTime(now.year + 5),
+    );
+    if (date == null) return;
+    if (!context.mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initialDate),
+    );
+    if (time == null) return;
+    onChange(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+}
+
+String _formatClock(DateTime d) {
+  final h = d.hour;
+  final m = d.minute.toString().padLeft(2, '0');
+  final suffix = h < 12 ? 'AM' : 'PM';
+  final h12 = h % 12 == 0 ? 12 : h % 12;
+  return '$h12:$m $suffix';
+}
+
+String _formatReminder(DateTime d) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  final clock = _formatClock(d);
+  return '${months[d.month - 1]} ${d.day} · $clock';
 }
 
 // ── Shared widgets ────────────────────────────────────────────────────────────

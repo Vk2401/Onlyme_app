@@ -23,13 +23,16 @@ class AddSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final theme = state.theme;
+    // Respect the home-indicator / gesture-bar safe area so tiles don't sit
+    // flush against the system UI.
+    final bottomSafe = MediaQuery.viewPaddingOf(context).bottom;
     return Container(
       decoration: BoxDecoration(
         color: theme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border.all(color: theme.rule, width: 1),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 24 + bottomSafe),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,7 +52,8 @@ class AddSheet extends StatelessWidget {
             crossAxisCount: 2,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            childAspectRatio: 2.1,
+            // Enough height for icon + 10px spacer + single-line label.
+            childAspectRatio: 2.6,
             children: [
               for (final o in options) _OptButton(option: o, onTap: () {
                 state.setScreen(o.key);
@@ -82,19 +86,28 @@ class _OptButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: theme.bg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: theme.rule, width: 1),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              IconChip(bg: option.color.withOpacity(0.13), size: 36, child: Icon(AppIcons.byKey(option.icon), color: option.color, size: 18)),
-              const SizedBox(height: 10),
-              Text(option.label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.ink)),
+              IconChip(
+                bg: option.color.withOpacity(0.13),
+                size: 36,
+                child: Icon(AppIcons.byKey(option.icon), color: option.color, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  option.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.1),
+                ),
+              ),
             ],
           ),
         ),

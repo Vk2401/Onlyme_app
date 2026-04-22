@@ -17,6 +17,7 @@ This folder holds the engineering-facing docs. User-facing copy lives in [`../RE
 | [screens.md](screens.md) | You're working on UI and need to know what each screen does. |
 | [widgets.md](widgets.md) | You want to reuse a primitive or add a new shared widget. |
 | [backup.md](backup.md) | You're extending export/import. |
+| [notifications.md](notifications.md) | You're adding/debugging scheduled reminders. |
 | [icon-pipeline.md](icon-pipeline.md) | You need to change the app icon. |
 | [ci.md](ci.md) | You want to understand/modify GitHub Actions. |
 | [testing.md](testing.md) | You want to run tests or write new ones. |

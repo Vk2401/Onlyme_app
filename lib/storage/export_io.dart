@@ -142,6 +142,8 @@ Future<ImportResult> importAll(AppState state, File f) async {
     }
 
     await state.reloadFromStorage();
+    // Re-plan every scheduledAt so imported tasks/events start firing.
+    await state.replayScheduledNotifications();
     return const ImportResult(true, 'Backup restored');
   } catch (e) {
     return ImportResult(false, 'Import failed: $e');

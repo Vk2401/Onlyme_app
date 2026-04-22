@@ -22,6 +22,7 @@ One actionable task with category + streak metadata.
 | `color` | Accent for the card header |
 | `done` | Completion flag |
 | `streak` | Consecutive-day counter (not yet auto-incremented — roadmap) |
+| `scheduledAt` | Optional `DateTime?` used by the notifications service to fire an OS reminder. See [notifications.md](notifications.md). `time` is a free-text display string — `scheduledAt` is the source of truth for when the reminder fires. |
 
 ### `Debt` — `lib/models/debt.dart`
 One owed-money record, either direction.
@@ -39,6 +40,7 @@ Events carry a checklist of budget items.
 | Field | Purpose |
 |---|---|
 | `PlannedEvent.id`, `title`, `date`, `daysAway`, `icon`, `color` | Card metadata |
+| `PlannedEvent.scheduledAt` | Optional `DateTime?` — when set, schedules two notifications (day-before + at-time). See [notifications.md](notifications.md). |
 | `items` | `List<EventItem>` — the checklist |
 | `EventItem.est` / `actual` | Planned vs. actual spend (int, base units of the chosen currency) |
 | `EventItem.done` | Ticked checkbox |

@@ -17,6 +17,7 @@ A private, local-only personal tracker. Everything stays on your device — no a
 - **Saved links** — bookmarks that open in the external browser.
 - **Vault** — a simple password store (title / username / password / URL / note).
 - **Profile** — name, DOB, phone, and currency symbol (₹ / $ / € / £ / ¥ / custom).
+- **Reminders** — tasks and events can set an optional date + time; the OS fires a local notification at that moment even when the app is closed (events also get a 24h-before nudge). No backend.
 
 All of it persists locally via `SharedPreferences` (JSON blobs), and the whole state round-trips through a single **export / import** JSON file.
 
@@ -84,3 +85,4 @@ To add a domain, follow the six-step walk-through in [`docs/contributing.md`](do
 - **Snapshots** — the UI renders a gradient tile instead of real images.
 - **Skincare** — currently a placeholder screen; no data model yet.
 - **Vault encryption** — entries are plain JSON on disk; hardening is deferred.
+- **Recurring reminders** — scheduling is one-shot only today; daily/weekly repeats are on the roadmap.

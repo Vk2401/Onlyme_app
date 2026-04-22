@@ -9,6 +9,7 @@ class TaskItem {
   final Color color;
   final bool done;
   final int streak;
+  final DateTime? scheduledAt;
 
   const TaskItem({
     required this.id,
@@ -19,6 +20,7 @@ class TaskItem {
     required this.color,
     required this.done,
     required this.streak,
+    this.scheduledAt,
   });
 
   TaskItem copyWith({
@@ -29,6 +31,8 @@ class TaskItem {
     Color? color,
     bool? done,
     int? streak,
+    DateTime? scheduledAt,
+    bool clearScheduledAt = false,
   }) =>
       TaskItem(
         id: id,
@@ -39,6 +43,7 @@ class TaskItem {
         color: color ?? this.color,
         done: done ?? this.done,
         streak: streak ?? this.streak,
+        scheduledAt: clearScheduledAt ? null : (scheduledAt ?? this.scheduledAt),
       );
 
   Map<String, dynamic> toJson() => {
@@ -50,6 +55,7 @@ class TaskItem {
         'color': color.value,
         'done': done,
         'streak': streak,
+        'scheduledAt': scheduledAt?.toIso8601String(),
       };
 
   factory TaskItem.fromJson(Map<String, dynamic> j) => TaskItem(
@@ -61,5 +67,8 @@ class TaskItem {
         color: Color(j['color'] as int),
         done: j['done'] as bool,
         streak: j['streak'] as int,
+        scheduledAt: (j['scheduledAt'] as String?) != null
+            ? DateTime.tryParse(j['scheduledAt'] as String)
+            : null,
       );
 }

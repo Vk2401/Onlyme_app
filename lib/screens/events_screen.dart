@@ -408,6 +408,7 @@ class _EventSheetState extends State<_EventSheet> {
   late final TextEditingController _days;
   late String _icon;
   late Color _color;
+  DateTime? _scheduledAt;
 
   @override
   void initState() {
@@ -418,6 +419,7 @@ class _EventSheetState extends State<_EventSheet> {
     _days = TextEditingController(text: e?.daysAway.toString() ?? '');
     _icon = e?.icon ?? 'gift';
     _color = e?.color ?? _eventColors[0];
+    _scheduledAt = e?.scheduledAt;
   }
 
   @override
@@ -456,6 +458,24 @@ class _EventSheetState extends State<_EventSheet> {
             const SizedBox(width: 10),
             Expanded(child: _EField(theme: theme, hint: 'Days away', controller: _days, keyboardType: TextInputType.number)),
           ]),
+          const SizedBox(height: 10),
+
+          _EventReminderRow(
+            theme: theme,
+            value: _scheduledAt,
+            onChange: (v) => setState(() {
+              _scheduledAt = v;
+              if (v != null) {
+                final now = DateTime.now();
+                final dd = DateTime(v.year, v.month, v.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+                _days.text = dd.toString();
+                if (_date.text.trim().isEmpty) {
+                  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                  _date.text = '${months[v.month - 1]} ${v.day}';
+                }
+              }
+            }),
+          ),
           const SizedBox(height: 16),
 
           Text('Icon', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.muted, letterSpacing: 0.5)),
@@ -539,6 +559,8 @@ class _EventSheetState extends State<_EventSheet> {
         daysAway: daysAway,
         icon: _icon,
         color: _color,
+        scheduledAt: _scheduledAt,
+        clearScheduledAt: _scheduledAt == null,
       ));
     } else {
       state.addEvent(
@@ -547,10 +569,81 @@ class _EventSheetState extends State<_EventSheet> {
         daysAway: daysAway,
         icon: _icon,
         color: _color,
+        scheduledAt: _scheduledAt,
       );
     }
     Navigator.of(context).pop();
   }
+}
+
+class _EventReminderRow extends StatelessWidget {
+  final AppTheme theme;
+  final DateTime? value;
+  final ValueChanged<DateTime?> onChange;
+  const _EventReminderRow({required this.theme, required this.value, required this.onChange});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = value == null
+        ? 'No reminder · optional'
+        : _formatEventReminder(value!);
+    return GestureDetector(
+      onTap: () => _pick(context),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12)),
+        child: Row(children: [
+          Icon(LucideIcons.bell, size: 18, color: theme.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: value == null ? theme.muted : theme.ink,
+              fontWeight: FontWeight.w500,
+            ),
+          )),
+          if (value != null)
+            GestureDetector(
+              onTap: () => onChange(null),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(LucideIcons.x, size: 16, color: theme.muted),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _pick(BuildContext context) async {
+    final now = DateTime.now();
+    final initialDate = value ?? now.add(const Duration(days: 1));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isBefore(now) ? now : initialDate,
+      firstDate: now,
+      lastDate: DateTime(now.year + 5),
+    );
+    if (date == null) return;
+    if (!context.mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initialDate),
+    );
+    if (time == null) return;
+    onChange(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+}
+
+String _formatEventReminder(DateTime d) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  final m = d.minute.toString().padLeft(2, '0');
+  final h12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final suffix = d.hour < 12 ? 'AM' : 'PM';
+  return 'Remind: ${months[d.month - 1]} ${d.day} · $h12:$m $suffix';
 }
 
 // ── Add event item sheet ──────────────────────────────────────────────────────
