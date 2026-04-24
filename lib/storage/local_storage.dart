@@ -10,6 +10,7 @@ import '../models/profile.dart';
 import '../models/note.dart';
 import '../models/saved_link.dart';
 import '../models/vault_entry.dart';
+import '../models/expense.dart';
 
 class LocalStorage {
   static const _kTasks = 'onlyme:tasks';
@@ -26,6 +27,7 @@ class LocalStorage {
   static const _kNotes = 'onlyme:notes';
   static const _kLinks = 'onlyme:links';
   static const _kVault = 'onlyme:vault';
+  static const _kExpenses = 'onlyme:expenses';
 
   final SharedPreferences _p;
   LocalStorage(this._p);
@@ -161,4 +163,15 @@ class LocalStorage {
 
   Future<void> writeVault(List<VaultEntry> entries) =>
       _p.setString(_kVault, jsonEncode(entries.map((v) => v.toJson()).toList()));
+
+  // --- Expenses ---
+  List<Expense>? readExpenses() {
+    final raw = _p.getString(_kExpenses);
+    if (raw == null) return null;
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => Expense.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> writeExpenses(List<Expense> expenses) =>
+      _p.setString(_kExpenses, jsonEncode(expenses.map((e) => e.toJson()).toList()));
 }

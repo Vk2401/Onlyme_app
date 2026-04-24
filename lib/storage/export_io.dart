@@ -13,6 +13,7 @@ import '../models/profile.dart';
 import '../models/note.dart';
 import '../models/saved_link.dart';
 import '../models/vault_entry.dart';
+import '../models/expense.dart';
 import '../theme/app_theme.dart';
 
 const _kPayloadVersion = 1;
@@ -41,6 +42,7 @@ Future<String> exportAll(AppState state) async {
       'notes': state.notes.map((n) => n.toJson()).toList(),
       'links': state.links.map((l) => l.toJson()).toList(),
       'vault': state.vault.map((v) => v.toJson()).toList(),
+      'expenses': state.expenses.map((e) => e.toJson()).toList(),
       'accent': state.theme.accentKey.name,
       'dark': state.theme.dark,
     },
@@ -128,6 +130,11 @@ Future<ImportResult> importAll(AppState state, File f) async {
     if (data['vault'] is List) {
       await s.writeVault(
         (data['vault'] as List).map((e) => VaultEntry.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+    }
+    if (data['expenses'] is List) {
+      await s.writeExpenses(
+        (data['expenses'] as List).map((e) => Expense.fromJson(e as Map<String, dynamic>)).toList(),
       );
     }
     if (data['accent'] is String) {
