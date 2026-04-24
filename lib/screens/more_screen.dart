@@ -85,11 +85,17 @@ class MoreScreen extends StatelessWidget {
         ? profile.name!.trim().substring(0, 1).toUpperCase()
         : 'M';
 
+    final totalExpenses = state.expenses.fold<int>(0, (s, e) => s + e.amount);
+    final expensesSub = state.expenses.isEmpty
+        ? 'No expenses logged'
+        : '${state.expenses.length} entries · $cur${_fmtK(totalExpenses)} total';
+
     final sections = <_Section>[
       _Section('Trackers', [
         _Item('tasks', 'Tasks', tasksSub, 'checkCircle', const Color(0xFF8B7CFF)),
         _Item('finance', 'Finance', financeSub, 'wallet', const Color(0xFF34D399)),
         _Item('events', 'Events', eventsSub, 'calendar', const Color(0xFFFB7185)),
+        _Item('expenses', 'Expenses', expensesSub, 'receipt', const Color(0xFFFF8C42)),
       ]),
       _Section('Health', [
         _Item('gym', 'Gym', gymSub, 'dumbbell', const Color(0xFFF472B6)),

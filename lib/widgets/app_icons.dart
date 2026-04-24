@@ -36,6 +36,11 @@ class AppIcons {
       case 'heart':        return LucideIcons.heart;
       case 'utensils':     return LucideIcons.utensils;
       case 'gift':         return LucideIcons.gift;
+      case 'receipt':      return LucideIcons.receipt;
+      case 'car':          return LucideIcons.car;
+      case 'shoppingBag':  return LucideIcons.shoppingBag;
+      case 'film':         return LucideIcons.film;
+      case 'bookOpen':     return LucideIcons.bookOpen;
       case 'refresh':      return LucideIcons.refreshCw;
       case 'cloud':        return LucideIcons.cloud;
       default:             return LucideIcons.circle;

@@ -9,6 +9,7 @@ import 'models/profile.dart';
 import 'models/note.dart';
 import 'models/saved_link.dart';
 import 'models/vault_entry.dart';
+import 'models/expense.dart';
 import 'services/notifications_service.dart';
 import 'storage/local_storage.dart';
 import 'data/seed_data.dart';
@@ -27,6 +28,7 @@ class AppState extends ChangeNotifier {
   late List<Note> notes;
   late List<SavedLink> links;
   late List<VaultEntry> vault;
+  late List<Expense> expenses;
 
   String screen = 'home';
   AppTheme theme = AppTheme.build(dark: true, accentKey: AccentKey.mint);
@@ -50,6 +52,7 @@ class AppState extends ChangeNotifier {
     state.notes = s.readNotes() ?? [];
     state.links = s.readLinks() ?? [];
     state.vault = s.readVault() ?? [];
+    state.expenses = s.readExpenses() ?? [];
     state.screen = s.readScreen() ?? 'home';
 
     final ak = s.readAccent();
@@ -507,6 +510,31 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Expenses CRUD ---
+  void addExpense({required int amount, required String category, required String note}) {
+    final now = DateTime.now();
+    final id = now.millisecondsSinceEpoch;
+    final e = Expense(
+      id: id, amount: amount, category: category, note: note,
+      dateStr: '${_monthAbbr(now.month)} ${now.day}', timestamp: id,
+    );
+    expenses = [e, ...expenses];
+    storage.writeExpenses(expenses);
+    notifyListeners();
+  }
+
+  void editExpense(Expense updated) {
+    expenses = expenses.map((e) => e.id == updated.id ? updated : e).toList();
+    storage.writeExpenses(expenses);
+    notifyListeners();
+  }
+
+  void deleteExpense(int id) {
+    expenses = expenses.where((e) => e.id != id).toList();
+    storage.writeExpenses(expenses);
+    notifyListeners();
+  }
+
   // --- Full reload (used by import) ---
   Future<void> reloadFromStorage() async {
     tasks = storage.readTasks() ?? [];
@@ -519,6 +547,7 @@ class AppState extends ChangeNotifier {
     notes = storage.readNotes() ?? [];
     links = storage.readLinks() ?? [];
     vault = storage.readVault() ?? [];
+    expenses = storage.readExpenses() ?? [];
     final ak = storage.readAccent();
     final dk = storage.readDark();
     final accent = AccentKey.values.firstWhere(

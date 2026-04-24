@@ -496,8 +496,7 @@ class _Field extends StatelessWidget {
   final String hint;
   final TextEditingController controller;
   final bool autofocus;
-  final TextInputType? keyboardType;
-  const _Field({required this.theme, required this.hint, required this.controller, this.autofocus = false, this.keyboardType});
+  const _Field({required this.theme, required this.hint, required this.controller, this.autofocus = false});
 
   @override
   Widget build(BuildContext context) {
@@ -507,7 +506,6 @@ class _Field extends StatelessWidget {
       child: TextField(
         controller: controller,
         autofocus: autofocus,
-        keyboardType: keyboardType,
         style: TextStyle(fontSize: 15, color: theme.ink, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           border: InputBorder.none,

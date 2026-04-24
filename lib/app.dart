@@ -15,6 +15,7 @@ import 'screens/profile_screen.dart';
 import 'screens/notes_screen.dart';
 import 'screens/links_screen.dart';
 import 'screens/vault_screen.dart';
+import 'screens/expenses_screen.dart';
 import 'screens/placeholder_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/tweaks_sheet.dart';
@@ -108,6 +109,9 @@ class _AppShellState extends State<AppShell> {
         break;
       case 'vault':
         content = const VaultScreen();
+        break;
+      case 'expenses':
+        content = const ExpensesScreen();
         break;
       default:
         content = PlaceholderScreen(label: _placeholderLabel(state.screen));
