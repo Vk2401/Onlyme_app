@@ -21,7 +21,7 @@ class SnapshotsScreen extends StatefulWidget {
 
 class _SnapshotsScreenState extends State<SnapshotsScreen> {
   String cat = 'hair';
-  Snapshot? open;
+  int? openIndex;
 
   @override
   void initState() {
@@ -122,7 +122,7 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
                   final s = items[i];
                   return _SnapTile(
                     snap: s, theme: theme,
-                    onTap: () => setState(() => open = s),
+                    onTap: () => setState(() => openIndex = i),
                     onDelete: () async {
                       final ok = await confirmDelete(
                         context,
@@ -139,13 +139,13 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
         ],
       ),
 
-      if (open != null)
-        _SnapOverlay(
-          snap: open!,
+      if (openIndex != null && items.isNotEmpty)
+        _SnapCarousel(
+          snaps: items,
+          initialIndex: openIndex!.clamp(0, items.length - 1),
           cat: cat,
-          onClose: () => setState(() => open = null),
-          onDelete: () async {
-            final snap = open!;
+          onClose: () => setState(() => openIndex = null),
+          onDelete: (snap) async {
             final ok = await confirmDelete(
               context,
               title: 'Delete snapshot?',
@@ -153,7 +153,7 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
             );
             if (!ok || !context.mounted) return;
             context.read<AppState>().deleteSnapshot(cat, snap.id);
-            setState(() => open = null);
+            if (items.length <= 1) setState(() => openIndex = null);
           },
         ),
     ]);
@@ -250,59 +250,166 @@ class _SnapTile extends StatelessWidget {
   }
 }
 
-// ── Full-screen overlay ───────────────────────────────────────────────────────
+// ── Full-screen carousel overlay ──────────────────────────────────────────────
 
-class _SnapOverlay extends StatelessWidget {
-  final Snapshot snap;
+class _SnapCarousel extends StatefulWidget {
+  final List<Snapshot> snaps;
+  final int initialIndex;
   final String cat;
   final VoidCallback onClose;
-  final VoidCallback onDelete;
-  const _SnapOverlay({required this.snap, required this.cat, required this.onClose, required this.onDelete});
+  final void Function(Snapshot) onDelete;
+  const _SnapCarousel({
+    required this.snaps, required this.initialIndex, required this.cat,
+    required this.onClose, required this.onDelete,
+  });
+
+  @override
+  State<_SnapCarousel> createState() => _SnapCarouselState();
+}
+
+class _SnapCarouselState extends State<_SnapCarousel> {
+  late final PageController _ctrl;
+  late int _page;
+
+  @override
+  void initState() {
+    super.initState();
+    _page = widget.initialIndex;
+    _ctrl = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void didUpdateWidget(_SnapCarousel old) {
+    super.didUpdateWidget(old);
+    // If the snap at current page was deleted, snap to the nearest valid page
+    if (widget.snaps.length != old.snaps.length) {
+      final clamped = _page.clamp(0, widget.snaps.length - 1);
+      if (clamped != _page) {
+        setState(() => _page = clamped);
+        _ctrl.jumpToPage(clamped);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      Positioned.fill(child: GestureDetector(
-        onTap: onClose,
-        child: Container(color: Colors.black.withOpacity(0.85)),
-      )),
-      Center(child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          AspectRatio(
-            aspectRatio: 3 / 4,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Stack(fit: StackFit.expand, children: [
-                _imageWidget(),
-                Positioned(top: 14, right: 14, child: GestureDetector(
-                  onTap: onClose,
-                  child: Container(
-                    width: 34, height: 34,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withOpacity(0.4)),
-                    child: const Icon(LucideIcons.x, color: Colors.white, size: 16),
+    final snaps = widget.snaps;
+    if (snaps.isEmpty) return const SizedBox.shrink();
+    final snap = snaps[_page.clamp(0, snaps.length - 1)];
+
+    return Material(
+      color: Colors.black.withOpacity(0.92),
+      child: SafeArea(
+        child: Stack(children: [
+          // Swipeable pages
+          PageView.builder(
+            controller: _ctrl,
+            itemCount: snaps.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (_, i) => _SnapPage(snap: snaps[i]),
+          ),
+
+          // Top bar: close + counter
+          Positioned(
+            top: 12, left: 16, right: 16,
+            child: Row(children: [
+              GestureDetector(
+                onTap: widget.onClose,
+                child: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.15)),
+                  child: const Icon(LucideIcons.x, color: Colors.white, size: 18),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_page + 1} / ${snaps.length}',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ]),
+          ),
+
+          // Bottom bar: date + note + delete
+          Positioned(
+            bottom: 24, left: 20, right: 20,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                if (snap.note.isNotEmpty)
+                  Text(snap.note,
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text(snap.date.toUpperCase(),
+                    style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.65), letterSpacing: 1.5, fontWeight: FontWeight.w500)),
+              ])),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => widget.onDelete(snap),
+                child: Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.red.withOpacity(0.75)),
+                  child: const Icon(LucideIcons.trash2, color: Colors.white, size: 17),
+                ),
+              ),
+            ]),
+          ),
+
+          // Dot indicators (shown only when > 1 snap)
+          if (snaps.length > 1)
+            Positioned(
+              bottom: 80, left: 0, right: 0,
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (var i = 0; i < snaps.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 5),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: i == _page ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i == _page ? Colors.white : Colors.white.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                )),
-                Positioned(bottom: 14, right: 14, child: GestureDetector(
-                  onTap: onDelete,
-                  child: Container(
-                    width: 34, height: 34,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.red.withOpacity(0.7)),
-                    child: const Icon(LucideIcons.trash2, color: Colors.white, size: 16),
-                  ),
-                )),
+                ],
               ]),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(snap.date.toUpperCase(), style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.7), letterSpacing: 1.5)),
-          if (snap.note.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(snap.note, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
-          ],
         ]),
-      )),
-    ]);
+      ),
+    );
+  }
+}
+
+class _SnapPage extends StatelessWidget {
+  final Snapshot snap;
+  const _SnapPage({required this.snap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 70, 20, 140),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: AspectRatio(
+            aspectRatio: 3 / 4,
+            child: _imageWidget(),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _imageWidget() {
