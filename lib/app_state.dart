@@ -83,6 +83,7 @@ class AppState extends ChangeNotifier {
           title: t.title,
           body: t.cat.isEmpty ? null : t.cat,
           at: t.scheduledAt!,
+          isAlarm: t.isAlarm,
         );
       }
     }
@@ -93,6 +94,7 @@ class AppState extends ChangeNotifier {
           title: e.title,
           body: e.date,
           at: e.scheduledAt!,
+          isAlarm: e.isAlarm,
         );
       }
     }
@@ -126,11 +128,12 @@ class AppState extends ChangeNotifier {
     required String icon,
     required Color color,
     DateTime? scheduledAt,
+    bool isAlarm = false,
   }) {
     final id = DateTime.now().millisecondsSinceEpoch;
     final task = TaskItem(
       id: id, title: title, time: time, cat: cat, icon: icon, color: color,
-      done: false, streak: 0, scheduledAt: scheduledAt,
+      done: false, streak: 0, scheduledAt: scheduledAt, isAlarm: isAlarm,
     );
     tasks = [...tasks, task];
     storage.writeTasks(tasks);
@@ -172,6 +175,7 @@ class AppState extends ChangeNotifier {
       title: t.title,
       body: t.cat.isEmpty ? null : t.cat,
       at: t.scheduledAt!,
+      isAlarm: t.isAlarm,
     );
   }
 
@@ -226,11 +230,12 @@ class AppState extends ChangeNotifier {
     required String icon,
     required Color color,
     DateTime? scheduledAt,
+    bool isAlarm = false,
   }) {
     final id = DateTime.now().millisecondsSinceEpoch;
     final ev = PlannedEvent(
       id: id, title: title, date: date, daysAway: daysAway, icon: icon,
-      color: color, items: [], scheduledAt: scheduledAt,
+      color: color, items: [], scheduledAt: scheduledAt, isAlarm: isAlarm,
     );
     events = [...events, ev];
     storage.writeEvents(events);
@@ -263,6 +268,7 @@ class AppState extends ChangeNotifier {
       title: e.title,
       body: e.date,
       at: e.scheduledAt!,
+      isAlarm: e.isAlarm,
     );
   }
 
@@ -471,6 +477,16 @@ class AppState extends ChangeNotifier {
       currencySymbol: (currencySymbol == null || currencySymbol.trim().isEmpty)
           ? null
           : currencySymbol.trim(),
+    );
+    storage.writeProfile(profile);
+    notifyListeners();
+  }
+
+  void setAlarmSound({required String? path, required String? name}) {
+    profile = profile.copyWith(
+      alarmSoundPath: path,
+      alarmSoundName: name,
+      clearAlarmSound: path == null,
     );
     storage.writeProfile(profile);
     notifyListeners();

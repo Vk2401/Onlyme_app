@@ -47,7 +47,17 @@ Future<String> exportAll(AppState state) async {
         return j;
       }).toList())),
       'weightLogs': state.weightLogs.map((w) => w.toJson()).toList(),
-      'profile': state.profile.toJson(),
+      'profile': () {
+        final j = Map<String, dynamic>.from(state.profile.toJson());
+        if (state.profile.alarmSoundPath != null) {
+          try {
+            j['alarmSoundData'] = base64Encode(File(state.profile.alarmSoundPath!).readAsBytesSync());
+            j['alarmSoundExt'] = state.profile.alarmSoundPath!.split('.').last;
+          } catch (_) {}
+          j.remove('alarmSoundPath');
+        }
+        return j;
+      }(),
       'notes': state.notes.map((n) => n.toJson()).toList(),
       'links': state.links.map((l) => l.toJson()).toList(),
       'vault': state.vault.map((v) => v.toJson()).toList(),
@@ -144,7 +154,23 @@ Future<ImportResult> importAll(AppState state, File f) async {
       );
     }
     if (data['profile'] is Map) {
-      await s.writeProfile(Profile.fromJson((data['profile'] as Map).cast<String, dynamic>()));
+      final pj = Map<String, dynamic>.from((data['profile'] as Map).cast<String, dynamic>());
+      String? alarmPath;
+      if (pj['alarmSoundData'] is String) {
+        try {
+          final appDocDir = await getApplicationDocumentsDirectory();
+          final alarmsDir = Directory('${appDocDir.path}/alarms');
+          if (!await alarmsDir.exists()) await alarmsDir.create(recursive: true);
+          final ext = (pj['alarmSoundExt'] as String?) ?? 'mp3';
+          final dest = File('${alarmsDir.path}/alarm_sound.$ext');
+          await dest.writeAsBytes(base64Decode(pj['alarmSoundData'] as String));
+          alarmPath = dest.path;
+        } catch (_) {}
+        pj.remove('alarmSoundData');
+        pj.remove('alarmSoundExt');
+      }
+      pj['alarmSoundPath'] = alarmPath;
+      await s.writeProfile(Profile.fromJson(pj));
     }
     if (data['notes'] is List) {
       await s.writeNotes(

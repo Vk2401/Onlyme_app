@@ -442,6 +442,7 @@ class _EventSheetState extends State<_EventSheet> {
   late String _icon;
   late Color _color;
   DateTime? _scheduledAt;
+  bool _isAlarm = false;
 
   @override
   void initState() {
@@ -453,6 +454,7 @@ class _EventSheetState extends State<_EventSheet> {
     _icon = e?.icon ?? 'gift';
     _color = e?.color ?? _eventColors[0];
     _scheduledAt = e?.scheduledAt;
+    _isAlarm = e?.isAlarm ?? false;
   }
 
   @override
@@ -507,8 +509,17 @@ class _EventSheetState extends State<_EventSheet> {
                   _date.text = '${months[v.month - 1]} ${v.day}';
                 }
               }
+              if (v == null) _isAlarm = false;
             }),
           ),
+          if (_scheduledAt != null) ...[
+            const SizedBox(height: 8),
+            _EventAlarmToggle(
+              theme: theme,
+              value: _isAlarm,
+              onChanged: (v) => setState(() => _isAlarm = v),
+            ),
+          ],
           const SizedBox(height: 16),
 
           Text('Icon', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.muted, letterSpacing: 0.5)),
@@ -594,6 +605,7 @@ class _EventSheetState extends State<_EventSheet> {
         color: _color,
         scheduledAt: _scheduledAt,
         clearScheduledAt: _scheduledAt == null,
+        isAlarm: _isAlarm,
       ));
     } else {
       state.addEvent(
@@ -603,9 +615,60 @@ class _EventSheetState extends State<_EventSheet> {
         icon: _icon,
         color: _color,
         scheduledAt: _scheduledAt,
+        isAlarm: _isAlarm,
       );
     }
     Navigator.of(context).pop();
+  }
+}
+
+class _EventAlarmToggle extends StatelessWidget {
+  final AppTheme theme;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _EventAlarmToggle({required this.theme, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: value ? theme.accent.withOpacity(0.1) : theme.bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: value ? theme.accent.withOpacity(0.4) : Colors.transparent),
+        ),
+        child: Row(children: [
+          Icon(LucideIcons.alarmClock, size: 18, color: value ? theme.accent : theme.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Text('Alarm mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+                color: value ? theme.accent : theme.ink)),
+            Text('Fires at alarm volume · bypasses silent mode',
+                style: TextStyle(fontSize: 11, color: theme.muted)),
+          ])),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 40, height: 22,
+            decoration: BoxDecoration(
+              color: value ? theme.accent : theme.rule,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Stack(children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                left: value ? 20 : 2, top: 2,
+                child: Container(width: 18, height: 18, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
 import '../models/debt.dart';
 import '../storage/export_io.dart';
+import '../theme/app_theme.dart';
 import '../widgets/header.dart';
 import '../widgets/primitives.dart';
 import '../widgets/app_icons.dart';
@@ -176,6 +178,21 @@ class MoreScreen extends StatelessWidget {
         const SizedBox(height: 22),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+          child: Text('NOTIFICATIONS', style: TextStyle(
+            fontSize: 12, fontWeight: FontWeight.w700, color: theme.muted, letterSpacing: 1,
+          )),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: AppCard(theme: theme, pad: 0, child: Column(children: [
+            _AlarmSoundRow(theme: theme),
+            _BatteryOptRow(theme: theme),
+          ])),
+        ),
+
+        const SizedBox(height: 22),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
           child: Text('BACKUP', style: TextStyle(
             fontSize: 12, fontWeight: FontWeight.w700, color: theme.muted, letterSpacing: 1,
           )),
@@ -296,6 +313,170 @@ String _fmtK(int n) {
   if (n >= 100000) return '${(n / 100000).toStringAsFixed(1)}L';
   if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
   return '$n';
+}
+
+// ── Alarm sound picker row ───────────────────────────────────────────────────
+
+class _AlarmSoundRow extends StatelessWidget {
+  final AppTheme theme;
+  const _AlarmSoundRow({required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final name = state.profile.alarmSoundName;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _pick(context, state),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(children: [
+            IconChip(
+              bg: const Color(0xFF8B7CFF).withOpacity(0.13), size: 36,
+              child: const Icon(LucideIcons.music, color: Color(0xFF8B7CFF), size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text('Alarm sound', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.1)),
+              const SizedBox(height: 1),
+              Text(
+                name ?? 'System default',
+                style: TextStyle(fontSize: 12, color: name != null ? theme.accent : theme.muted),
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+              ),
+            ])),
+            if (name != null)
+              GestureDetector(
+                onTap: () => state.setAlarmSound(path: null, name: null),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(padding: const EdgeInsets.all(6), child: Icon(LucideIcons.x, size: 16, color: theme.muted)),
+              ),
+            Icon(LucideIcons.chevronRight, color: theme.muted, size: 16),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, AppState state) async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.audio,
+      allowMultiple: false,
+    );
+    if (picked == null || picked.files.single.path == null) return;
+
+    final src = File(picked.files.single.path!);
+    final dir = await getApplicationDocumentsDirectory();
+    final alarmsDir = Directory('${dir.path}/alarms');
+    if (!alarmsDir.existsSync()) alarmsDir.createSync(recursive: true);
+
+    final ext = picked.files.single.extension ?? 'mp3';
+    final dest = File('${alarmsDir.path}/alarm_sound.$ext');
+    await src.copy(dest.path);
+
+    if (!context.mounted) return;
+    state.setAlarmSound(
+      path: dest.path,
+      name: picked.files.single.name,
+    );
+  }
+}
+
+// ── Battery optimization guidance row ────────────────────────────────────────
+
+class _BatteryOptRow extends StatelessWidget {
+  final AppTheme theme;
+  const _BatteryOptRow({required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showGuidance(context),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.rule, width: 1))),
+          child: Row(children: [
+            IconChip(
+              bg: const Color(0xFFFBBF24).withOpacity(0.13), size: 36,
+              child: const Icon(LucideIcons.batteryCharging, color: Color(0xFFFBBF24), size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text('Background alarms', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.1)),
+              const SizedBox(height: 1),
+              Text('Fix alarms not firing after app close', style: TextStyle(fontSize: 12, color: theme.muted), maxLines: 1),
+            ])),
+            Icon(LucideIcons.info, color: theme.muted, size: 16),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  void _showGuidance(BuildContext context) {
+    final theme = context.read<AppState>().theme;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: theme.rule),
+        ),
+        padding: const EdgeInsets.fromLTRB(22, 20, 22, 40),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 18),
+          Text('Fix background alarms', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
+          const SizedBox(height: 6),
+          Text('If reminders don\'t fire after the app is cleared from recents, do the steps below for your device.',
+              style: TextStyle(fontSize: 13, color: theme.muted, height: 1.5)),
+          const SizedBox(height: 20),
+          _Step(theme: theme, num: '1', text: 'Open  Settings → Apps → Only Me → Battery'),
+          const SizedBox(height: 12),
+          _Step(theme: theme, num: '2', text: 'Set battery usage to Unrestricted (or "Don\'t optimise")'),
+          const SizedBox(height: 12),
+          _Step(theme: theme, num: '3', text: 'Settings → Apps → Special app access → Alarms & reminders → allow Only Me'),
+          const SizedBox(height: 12),
+          _Step(theme: theme, num: '4', text: 'On Xiaomi/MIUI: also enable Autostart for Only Me'),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(color: theme.accent, borderRadius: BorderRadius.circular(14),
+                  boxShadow: [BoxShadow(color: theme.glow, blurRadius: 20, offset: const Offset(0, 6))]),
+              alignment: Alignment.center,
+              child: const Text('Got it', style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _Step extends StatelessWidget {
+  final AppTheme theme;
+  final String num;
+  final String text;
+  const _Step({required this.theme, required this.num, required this.text});
+  @override
+  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Container(
+      width: 24, height: 24,
+      decoration: BoxDecoration(color: theme.accent.withOpacity(0.15), shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: Text(num, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.accent)),
+    ),
+    const SizedBox(width: 10),
+    Expanded(child: Text(text, style: TextStyle(fontSize: 13, color: theme.ink, height: 1.4))),
+  ]);
 }
 
 int _snapsThisMonth(AppState state) {

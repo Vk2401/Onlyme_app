@@ -5,12 +5,17 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 /// Wraps flutter_local_notifications so the rest of the app never sees the
-/// plugin directly. Responsibilities:
-///   * one-time init (timezone DB + channel setup)
-///   * schedule / cancel a single task notification
-///   * schedule / cancel an event's two notifications (day-before + at-time)
-///   * request OS permission lazily (on the first schedule that actually
-///     needs it)
+/// plugin directly.
+///
+/// Two delivery modes:
+///   * Normal (isAlarm=false) — high-priority notification, uses
+///     exactAllowWhileIdle so it survives Doze mode but is still subject to
+///     OEM battery-killer policies.
+///   * Alarm (isAlarm=true) — uses setAlarmClock(), the highest-priority
+///     Android alarm type. Shows a clock icon in the status bar, is exempt
+///     from Doze and from most OEM battery optimisations, and fires reliably
+///     after the app is removed from recents. On iOS the same notification
+///     is promoted to time-sensitive interruption level.
 class NotificationsService {
   NotificationsService._();
   static final NotificationsService instance = NotificationsService._();
@@ -19,12 +24,16 @@ class NotificationsService {
   bool _ready = false;
   bool _permissionAsked = false;
 
-  // IDs are derived from domain id modulo 31-bit range so they fit Android
-  // notification-id constraints. Tasks use the id as-is; events reserve two
-  // slots (even = at-time, odd = day-before).
+  // IDs: tasks use id as-is; events reserve two slots (even=at-time, odd=day-before).
   static int _taskId(int domainId) => domainId & 0x7FFFFFFE;
   static int _eventAtId(int domainId) => domainId & 0x7FFFFFFE;
   static int _eventDayBeforeId(int domainId) => (domainId & 0x7FFFFFFE) | 1;
+
+  // Channel IDs — must match what is declared in AndroidManifest (channels are
+  // created at runtime via createNotificationChannel).
+  static const _chTasksId = 'onlyme_tasks';
+  static const _chEventsId = 'onlyme_events';
+  static const _chAlarmsId = 'onlyme_alarms';
 
   Future<void> init() async {
     if (_ready) return;
@@ -32,15 +41,10 @@ class NotificationsService {
     try {
       final local = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(local));
-    } catch (_) {
-      // Fall back to UTC if we can't detect the device TZ — fires will be
-      // offset from wall-clock but at least won't crash.
-    }
+    } catch (_) {}
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const darwin = DarwinInitializationSettings(
-      // We handle the prompt lazily via requestPermission(), not here, so
-      // the OS doesn't pop a dialog on app launch.
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
@@ -48,6 +52,40 @@ class NotificationsService {
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: darwin, macOS: darwin),
     );
+
+    // Create notification channels on Android. Channels are immutable after
+    // creation, so we create all three up-front. The alarm channel uses the
+    // ALARM audio stream so it plays at alarm volume (not silenced by DND
+    // profiles that exclude alarms).
+    if (Platform.isAndroid) {
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()!;
+
+      await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
+        _chTasksId,
+        'Task reminders',
+        description: 'Reminders for scheduled tasks',
+        importance: Importance.high,
+      ));
+
+      await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
+        _chEventsId,
+        'Event reminders',
+        description: 'Reminders for planned events',
+        importance: Importance.high,
+      ));
+
+      // Alarm channel: plays through alarm volume, bypasses most DND modes.
+      await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
+        _chAlarmsId,
+        'Alarms',
+        description: 'Alarm-mode reminders — plays at alarm volume',
+        importance: Importance.max,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        playSound: true,
+      ));
+    }
+
     _ready = true;
   }
 
@@ -65,20 +103,24 @@ class NotificationsService {
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       final notifGranted = await android?.requestNotificationsPermission() ?? true;
-      // Exact-alarm permission is required on Android 12+ (API 31+). Best
-      // effort — if the user denies, scheduled notifications fall back to
-      // inexact delivery which can be delayed by up to ~15min.
+      // Exact-alarm permission is required on Android 12+ (API 31+).
+      // Without it, delivery can be delayed ~15 min. Without USE_EXACT_ALARM /
+      // SCHEDULE_EXACT_ALARM being granted, alarm-clock mode falls back to
+      // inexact but still fires eventually.
       await android?.requestExactAlarmsPermission();
       return notifGranted;
     }
     return true;
   }
 
+  // ── Public schedule API ───────────────────────────────────────────────────
+
   Future<void> scheduleTask({
     required int id,
     required String title,
     String? body,
     required DateTime at,
+    bool isAlarm = false,
   }) async {
     await _ensureReadyAndPermitted(at);
     if (at.isBefore(DateTime.now())) return;
@@ -87,8 +129,12 @@ class NotificationsService {
       title,
       body ?? 'Task reminder',
       tz.TZDateTime.from(at, tz.local),
-      _taskDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      isAlarm ? _alarmDetails() : _taskDetails(),
+      // alarmClock uses setAlarmClock() — highest-priority Android alarm,
+      // survives Doze + OEM battery killers; shows clock icon in status bar.
+      androidScheduleMode: isAlarm
+          ? AndroidScheduleMode.alarmClock
+          : AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'task:$id',
@@ -102,19 +148,23 @@ class NotificationsService {
     required String title,
     String? body,
     required DateTime at,
+    bool isAlarm = false,
   }) async {
     await _ensureReadyAndPermitted(at);
     final now = DateTime.now();
+    final details = isAlarm ? _alarmDetails() : _eventDetails();
+    final schedMode = isAlarm
+        ? AndroidScheduleMode.alarmClock
+        : AndroidScheduleMode.exactAllowWhileIdle;
 
-    // At-the-moment notification.
     if (at.isAfter(now)) {
       await _plugin.zonedSchedule(
         _eventAtId(id),
         title,
         body ?? 'Event starting',
         tz.TZDateTime.from(at, tz.local),
-        _eventDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        details,
+        androidScheduleMode: schedMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'event:$id',
@@ -123,7 +173,7 @@ class NotificationsService {
       await _plugin.cancel(_eventAtId(id));
     }
 
-    // Day-before reminder (skip if already within 24h).
+    // Day-before reminder (skip if already within 24h; use normal mode regardless).
     final dayBefore = at.subtract(const Duration(days: 1));
     if (dayBefore.isAfter(now)) {
       await _plugin.zonedSchedule(
@@ -152,7 +202,7 @@ class NotificationsService {
   Future<List<PendingNotificationRequest>> pending() =>
       _plugin.pendingNotificationRequests();
 
-  // ── internals ──────────────────────────────────────────────────────────
+  // ── Internals ─────────────────────────────────────────────────────────────
 
   Future<void> _ensureReadyAndPermitted(DateTime target) async {
     if (!_ready) await init();
@@ -161,7 +211,7 @@ class NotificationsService {
 
   NotificationDetails _taskDetails() => const NotificationDetails(
         android: AndroidNotificationDetails(
-          'onlyme_tasks',
+          _chTasksId,
           'Task reminders',
           channelDescription: 'Reminders for scheduled tasks',
           importance: Importance.high,
@@ -178,9 +228,9 @@ class NotificationsService {
 
   NotificationDetails _eventDetails() => const NotificationDetails(
         android: AndroidNotificationDetails(
-          'onlyme_events',
+          _chEventsId,
           'Event reminders',
-          channelDescription: 'Reminders for planned events (day-before + at start)',
+          channelDescription: 'Reminders for planned events',
           importance: Importance.high,
           priority: Priority.high,
           category: AndroidNotificationCategory.event,
@@ -190,6 +240,26 @@ class NotificationsService {
           presentBadge: true,
           presentSound: true,
           interruptionLevel: InterruptionLevel.timeSensitive,
+        ),
+      );
+
+  NotificationDetails _alarmDetails() => const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _chAlarmsId,
+          'Alarms',
+          channelDescription: 'Alarm-mode reminders',
+          importance: Importance.max,
+          priority: Priority.max,
+          category: AndroidNotificationCategory.alarm,
+          // fullScreenIntent shows a heads-up banner even on lock screen.
+          fullScreenIntent: true,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          interruptionLevel: InterruptionLevel.critical,
         ),
       );
 }

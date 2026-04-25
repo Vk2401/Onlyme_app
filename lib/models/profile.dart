@@ -4,6 +4,8 @@ class Profile {
   final String? phone;
   final int createdAt;
   final String currencySymbol;
+  final String? alarmSoundPath;
+  final String? alarmSoundName;
 
   const Profile({
     this.name,
@@ -11,6 +13,8 @@ class Profile {
     this.phone,
     required this.createdAt,
     this.currencySymbol = '₹',
+    this.alarmSoundPath,
+    this.alarmSoundName,
   });
 
   bool get isEmpty => (name == null || name!.trim().isEmpty)
@@ -33,9 +37,12 @@ class Profile {
     String? phone,
     int? createdAt,
     String? currencySymbol,
+    String? alarmSoundPath,
+    String? alarmSoundName,
     bool clearName = false,
     bool clearDob = false,
     bool clearPhone = false,
+    bool clearAlarmSound = false,
   }) =>
       Profile(
         name: clearName ? null : (name ?? this.name),
@@ -43,6 +50,8 @@ class Profile {
         phone: clearPhone ? null : (phone ?? this.phone),
         createdAt: createdAt ?? this.createdAt,
         currencySymbol: currencySymbol ?? this.currencySymbol,
+        alarmSoundPath: clearAlarmSound ? null : (alarmSoundPath ?? this.alarmSoundPath),
+        alarmSoundName: clearAlarmSound ? null : (alarmSoundName ?? this.alarmSoundName),
       );
 
   Map<String, dynamic> toJson() => {
@@ -51,6 +60,8 @@ class Profile {
         'phone': phone,
         'createdAt': createdAt,
         'currencySymbol': currencySymbol,
+        if (alarmSoundPath != null) 'alarmSoundPath': alarmSoundPath,
+        if (alarmSoundName != null) 'alarmSoundName': alarmSoundName,
       };
 
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
@@ -59,5 +70,7 @@ class Profile {
         phone: j['phone'] as String?,
         createdAt: (j['createdAt'] as int?) ?? DateTime.now().millisecondsSinceEpoch,
         currencySymbol: (j['currencySymbol'] as String?) ?? '₹',
+        alarmSoundPath: j['alarmSoundPath'] as String?,
+        alarmSoundName: j['alarmSoundName'] as String?,
       );
 }
