@@ -569,7 +569,11 @@ class _ExerciseRow extends StatelessWidget {
           child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.pencil, size: 14, color: theme.muted)),
         ),
         GestureDetector(
-          onTap: onDelete,
+          onTap: () async {
+            final ok = await confirmDelete(context,
+                title: 'Delete exercise?', message: '${ex.name} · ${ex.sets}×${ex.reps}');
+            if (ok) onDelete();
+          },
           behavior: HitTestBehavior.opaque,
           child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.trash2, size: 14, color: theme.danger)),
         ),

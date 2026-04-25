@@ -229,7 +229,10 @@ class _DismissibleTask extends StatelessWidget {
             Positioned(
               top: 6, right: 6,
               child: GestureDetector(
-                onTap: onDelete,
+                onTap: () async {
+                  final ok = await confirmDelete(context, title: 'Delete task?', message: task.title);
+                  if (ok) onDelete();
+                },
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
                   padding: const EdgeInsets.all(6),
