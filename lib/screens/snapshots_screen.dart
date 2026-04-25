@@ -204,10 +204,10 @@ class _SnapTile extends StatelessWidget {
             ),
           ),
         ])),
-        if (snap.note.isNotEmpty) ...[
-          const SizedBox(height: 6),
+        const SizedBox(height: 6),
+        if (snap.note.isNotEmpty)
           Text(snap.note, style: TextStyle(fontSize: 13, color: theme.ink, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-        ],
+        Text(snap.date, style: TextStyle(fontSize: 11, color: theme.muted, fontWeight: FontWeight.w500)),
       ]),
     );
   }
@@ -236,22 +236,15 @@ class _SnapTile extends StatelessWidget {
             ],
           ),
         ),
-        child: Stack(children: [
-          Positioned.fill(child: Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(-0.4, -0.4), radius: 0.8,
-                colors: [Colors.white.withOpacity(0.2), Colors.transparent],
-                stops: const [0, 0.6],
-              ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: const Alignment(-0.4, -0.4), radius: 0.8,
+              colors: [Colors.white.withOpacity(0.2), Colors.transparent],
+              stops: const [0, 0.6],
             ),
-          )),
-          Positioned(top: 10, left: 10, child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: Colors.black.withOpacity(0.35), borderRadius: BorderRadius.circular(6)),
-            child: Text(snap.date, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-          )),
-        ]),
+          ),
+        ),
       ),
     );
   }
