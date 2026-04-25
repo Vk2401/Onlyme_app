@@ -489,12 +489,9 @@ class _DismissibleExercise extends StatelessWidget {
         message: '${ex.name} · ${ex.sets}×${ex.reps}',
       ),
       onDismissed: (_) => onDelete(),
-      child: GestureDetector(
-        onTap: onEdit,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: _ExerciseRow(ex: ex, onToggle: onToggle, theme: theme),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+        child: _ExerciseRow(ex: ex, onToggle: onToggle, onEdit: onEdit, onDelete: onDelete, theme: theme),
       ),
     );
   }
@@ -503,8 +500,10 @@ class _DismissibleExercise extends StatelessWidget {
 class _ExerciseRow extends StatelessWidget {
   final Exercise ex;
   final VoidCallback onToggle;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
   final AppTheme theme;
-  const _ExerciseRow({required this.ex, required this.onToggle, required this.theme});
+  const _ExerciseRow({required this.ex, required this.onToggle, required this.onEdit, required this.onDelete, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -523,6 +522,17 @@ class _ExerciseRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(color: theme.surface2, borderRadius: BorderRadius.circular(10)),
           child: Text(ex.weight, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.ink)),
+        ),
+        const SizedBox(width: 4),
+        GestureDetector(
+          onTap: onEdit,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.pencil, size: 14, color: theme.muted)),
+        ),
+        GestureDetector(
+          onTap: onDelete,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.trash2, size: 14, color: theme.danger)),
         ),
       ])),
     );

@@ -13,15 +13,12 @@ import '../widgets/confirm_sheet.dart';
 
 class MoreScreen extends StatelessWidget {
   final VoidCallback onOpenTweaks;
-  final Future<void> Function() onSync;
-  const MoreScreen({super.key, required this.onOpenTweaks, required this.onSync});
+  const MoreScreen({super.key, required this.onOpenTweaks});
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final theme = state.theme;
-    final last = state.lastSyncAt;
-    final lastStr = last == null ? 'Never synced' : 'Last synced ${_ago(last)}';
     final profile = state.profile;
 
     // --- Real data summaries ---
@@ -156,29 +153,6 @@ class MoreScreen extends StatelessWidget {
           ),
         ),
 
-        // Sync card
-        const SizedBox(height: 22),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: AppCard(theme: theme, pad: 16, child: Row(children: [
-            IconChip(
-              bg: theme.accent.withOpacity(0.15),
-              size: 44,
-              child: Icon(LucideIcons.cloud, color: theme.accent, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Sync to Claude', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink)),
-                const SizedBox(height: 2),
-                Text(lastStr, style: TextStyle(fontSize: 12, color: theme.muted)),
-              ],
-            )),
-            _SyncButton(onTap: onSync),
-          ])),
-        ),
-
         for (final s in sections) ...[
           const SizedBox(height: 22),
           Padding(
@@ -263,51 +237,6 @@ class MoreScreen extends StatelessWidget {
   }
 }
 
-class _SyncButton extends StatefulWidget {
-  final Future<void> Function() onTap;
-  const _SyncButton({required this.onTap});
-  @override
-  State<_SyncButton> createState() => _SyncButtonState();
-}
-
-class _SyncButtonState extends State<_SyncButton> with SingleTickerProviderStateMixin {
-  bool busy = false;
-  late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat();
-
-  @override
-  void dispose() { _spin.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.read<AppState>().theme;
-    return GestureDetector(
-      onTap: busy ? null : () async {
-        setState(() => busy = true);
-        await widget.onTap();
-        if (mounted) setState(() => busy = false);
-      },
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: theme.accent,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: theme.glow, blurRadius: 18, offset: const Offset(0, 6))],
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          RotationTransition(
-            turns: busy ? _spin : const AlwaysStoppedAnimation(0),
-            child: const Icon(LucideIcons.refreshCw, color: Colors.white, size: 14),
-          ),
-          const SizedBox(width: 6),
-          Text(busy ? 'Syncing' : 'Sync', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-        ]),
-      ),
-    );
-  }
-}
-
 class _MoreRow extends StatelessWidget {
   final _Item item;
   final bool hasTop;
@@ -356,14 +285,6 @@ class _Item {
   final String icon;
   final Color color;
   const _Item(this.key, this.label, this.sub, this.icon, this.color);
-}
-
-String _ago(DateTime then) {
-  final d = DateTime.now().difference(then);
-  if (d.inSeconds < 60) return 'just now';
-  if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-  if (d.inHours < 24) return '${d.inHours}h ago';
-  return '${d.inDays}d ago';
 }
 
 String _monthYear(DateTime d) {

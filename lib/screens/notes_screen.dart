@@ -25,6 +25,27 @@ class NotesScreen extends StatelessWidget {
           right: [HeaderBtn(theme: theme, icon: LucideIcons.plus, onTap: () => _openSheet(context))],
         ),
 
+        // Prominent add button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: GestureDetector(
+            onTap: () => _openSheet(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: theme.accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.accent.withOpacity(0.3)),
+              ),
+              child: Row(children: [
+                Icon(LucideIcons.plus, color: theme.accent, size: 18),
+                const SizedBox(width: 10),
+                Text('New note', style: TextStyle(color: theme.accent, fontWeight: FontWeight.w600, fontSize: 14)),
+              ]),
+            ),
+          ),
+        ),
+
         if (notes.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -98,15 +119,24 @@ class _NoteDismiss extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (note.title.isNotEmpty)
-              Text(note.title,
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: theme.ink, letterSpacing: -0.2)),
-            if (note.title.isNotEmpty && note.body.isNotEmpty) const SizedBox(height: 4),
-            if (note.body.isNotEmpty)
-              Text(note.body,
-                  maxLines: 3, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, color: theme.ink2, height: 1.4)),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (note.title.isNotEmpty)
+                  Text(note.title,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: theme.ink, letterSpacing: -0.2)),
+                if (note.title.isNotEmpty && note.body.isNotEmpty) const SizedBox(height: 4),
+                if (note.body.isNotEmpty)
+                  Text(note.body,
+                      maxLines: 3, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13, color: theme.ink2, height: 1.4)),
+              ])),
+              GestureDetector(
+                onTap: onDelete, behavior: HitTestBehavior.opaque,
+                child: Padding(padding: const EdgeInsets.only(left: 8),
+                    child: Icon(LucideIcons.trash2, size: 15, color: theme.danger)),
+              ),
+            ]),
             const SizedBox(height: 8),
             Row(children: [
               Icon(LucideIcons.clock, size: 11, color: theme.muted),
