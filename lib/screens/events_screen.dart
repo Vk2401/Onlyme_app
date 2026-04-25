@@ -83,6 +83,27 @@ class _EventsScreenState extends State<EventsScreen> {
           right: [HeaderBtn(theme: theme, icon: LucideIcons.plus, onTap: () => _openEventSheet(context))],
         ),
 
+        // Prominent add button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: GestureDetector(
+            onTap: () => _openEventSheet(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: theme.accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.accent.withOpacity(0.3)),
+              ),
+              child: Row(children: [
+                Icon(LucideIcons.plus, color: theme.accent, size: 18),
+                const SizedBox(width: 10),
+                Text('Plan an event', style: TextStyle(color: theme.accent, fontWeight: FontWeight.w600, fontSize: 14)),
+              ]),
+            ),
+          ),
+        ),
+
         // Event carousel
         SizedBox(
           height: 160,
@@ -387,6 +408,18 @@ class _EventItemRow extends StatelessWidget {
           ])),
         ])),
         Icon(LucideIcons.pencil, size: 14, color: theme.muted),
+        const SizedBox(width: 4),
+        GestureDetector(
+          onTap: () async {
+            final ok = await confirmDelete(context, title: 'Delete checklist item?', message: it.label);
+            if (ok && context.mounted) state.deleteEventItem(event.id, it.id);
+          },
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Icon(LucideIcons.trash2, size: 14, color: theme.danger),
+          ),
+        ),
       ])),
     );
   }

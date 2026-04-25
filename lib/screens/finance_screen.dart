@@ -44,6 +44,27 @@ class _FinanceScreenState extends State<FinanceScreen> {
           ],
         ),
 
+        // Prominent add button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: GestureDetector(
+            onTap: () => _openDebtSheet(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: theme.accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.accent.withOpacity(0.3)),
+              ),
+              child: Row(children: [
+                Icon(LucideIcons.plus, color: theme.accent, size: 18),
+                const SizedBox(width: 10),
+                Text('Log a debt', style: TextStyle(color: theme.accent, fontWeight: FontWeight.w600, fontSize: 14)),
+              ]),
+            ),
+          ),
+        ),
+
         // Net position card
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -273,7 +294,7 @@ class _DismissibleDebt extends StatelessWidget {
         onLongPress: onEdit,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: _DebtCard(debt: debt, theme: theme, onPay: onPay, onEdit: onEdit),
+          child: _DebtCard(debt: debt, theme: theme, onPay: onPay, onEdit: onEdit, onDelete: onDelete),
         ),
       ),
     );
@@ -285,7 +306,8 @@ class _DebtCard extends StatelessWidget {
   final AppTheme theme;
   final VoidCallback onPay;
   final VoidCallback onEdit;
-  const _DebtCard({required this.debt, required this.theme, required this.onPay, required this.onEdit});
+  final VoidCallback onDelete;
+  const _DebtCard({required this.debt, required this.theme, required this.onPay, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -310,9 +332,18 @@ class _DebtCard extends StatelessWidget {
             Row(children: [
               GestureDetector(
                 onTap: onEdit,
+                behavior: HitTestBehavior.opaque,
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.only(right: 8),
                   child: Icon(LucideIcons.pencil, size: 15, color: theme.muted),
+                ),
+              ),
+              GestureDetector(
+                onTap: onDelete,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Icon(LucideIcons.trash2, size: 15, color: theme.danger),
                 ),
               ),
               Text(

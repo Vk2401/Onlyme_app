@@ -26,6 +26,27 @@ class LinksScreen extends StatelessWidget {
           right: [HeaderBtn(theme: theme, icon: LucideIcons.plus, onTap: () => _openSheet(context))],
         ),
 
+        // Prominent add button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: GestureDetector(
+            onTap: () => _openSheet(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: theme.accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.accent.withOpacity(0.3)),
+              ),
+              child: Row(children: [
+                Icon(LucideIcons.plus, color: theme.accent, size: 18),
+                const SizedBox(width: 10),
+                Text('Save a link', style: TextStyle(color: theme.accent, fontWeight: FontWeight.w600, fontSize: 14)),
+              ]),
+            ),
+          ),
+        ),
+
         if (links.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -140,14 +161,15 @@ class _LinkDismiss extends StatelessWidget {
             ],
           )),
           GestureDetector(
-            onTap: onEdit,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Icon(LucideIcons.pencil, size: 16, color: theme.muted),
-            ),
+            onTap: onEdit, behavior: HitTestBehavior.opaque,
+            child: Padding(padding: const EdgeInsets.all(6), child: Icon(LucideIcons.pencil, size: 15, color: theme.muted)),
           ),
-          Icon(LucideIcons.externalLink, color: theme.muted, size: 16),
+          GestureDetector(
+            onTap: onDelete, behavior: HitTestBehavior.opaque,
+            child: Padding(padding: const EdgeInsets.all(6), child: Icon(LucideIcons.trash2, size: 15, color: theme.danger)),
+          ),
+          const SizedBox(width: 2),
+          Icon(LucideIcons.externalLink, color: theme.muted, size: 15),
         ])),
       ),
     );

@@ -95,7 +95,6 @@ class _AppShellState extends State<AppShell> {
       case 'more':
         content = MoreScreen(
           onOpenTweaks: () => setState(() => showTweaks = true),
-          onSync: () => context.read<AppState>().syncNow(),
         );
         break;
       case 'profile':

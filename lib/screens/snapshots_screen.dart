@@ -50,7 +50,29 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
+
+          // Prominent add button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+            child: GestureDetector(
+              onTap: () => _openAddSheet(context, theme),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: theme.accent.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: theme.accent.withOpacity(0.3)),
+                ),
+                child: Row(children: [
+                  Icon(LucideIcons.camera, color: theme.accent, size: 18),
+                  const SizedBox(width: 10),
+                  Text('Add snapshot', style: TextStyle(color: theme.accent, fontWeight: FontWeight.w600, fontSize: 14)),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
 
           if (items.isEmpty)
             Padding(
@@ -150,44 +172,30 @@ class _SnapTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      onLongPress: () => _confirmDelete(context),
       behavior: HitTestBehavior.opaque,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: _photoBox(snap.hue, snap.date)),
+        Expanded(child: Stack(children: [
+          Positioned.fill(child: _photoBox(snap.hue, snap.date)),
+          Positioned(
+            top: 6, right: 6,
+            child: GestureDetector(
+              onTap: onDelete,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.45),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(LucideIcons.trash2, color: Colors.white, size: 13),
+              ),
+            ),
+          ),
+        ])),
         const SizedBox(height: 8),
         Text(snap.note, style: TextStyle(fontSize: 13, color: theme.ink, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
       ]),
-    );
-  }
-
-  void _confirmDelete(BuildContext context) {
-    final theme = context.read<AppState>().theme;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.4),
-      builder: (_) => Container(
-        decoration: BoxDecoration(color: theme.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(20)), border: Border.all(color: theme.rule)),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          Text(snap.note, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.ink)),
-          const SizedBox(height: 4),
-          Text(snap.date, style: TextStyle(fontSize: 12, color: theme.muted)),
-          const SizedBox(height: 20),
-          GestureDetector(
-            onTap: () { Navigator.pop(context); onDelete(); },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(color: theme.danger, borderRadius: BorderRadius.circular(12)),
-              alignment: Alignment.center,
-              child: const Text('Delete snapshot', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-            ),
-          ),
-        ]),
-      ),
     );
   }
 

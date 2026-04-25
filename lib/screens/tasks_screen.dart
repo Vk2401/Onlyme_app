@@ -57,6 +57,27 @@ class _TasksScreenState extends State<TasksScreen> {
           ],
         ),
 
+        // Prominent add button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: GestureDetector(
+            onTap: () => _openTaskSheet(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: theme.accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.accent.withOpacity(0.3)),
+              ),
+              child: Row(children: [
+                Icon(LucideIcons.plus, color: theme.accent, size: 18),
+                const SizedBox(width: 10),
+                Text('Add a task', style: TextStyle(color: theme.accent, fontWeight: FontWeight.w600, fontSize: 14)),
+              ]),
+            ),
+          ),
+        ),
+
         // Progress card
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -203,7 +224,20 @@ class _DismissibleTask extends StatelessWidget {
         onLongPress: onEdit,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: TaskCardWidget(task: task, theme: theme, onToggle: onToggle),
+          child: Stack(children: [
+            TaskCardWidget(task: task, theme: theme, onToggle: onToggle),
+            Positioned(
+              top: 6, right: 6,
+              child: GestureDetector(
+                onTap: onDelete,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(LucideIcons.trash2, size: 14, color: theme.danger.withOpacity(0.7)),
+                ),
+              ),
+            ),
+          ]),
         ),
       ),
     );

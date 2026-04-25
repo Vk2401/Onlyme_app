@@ -145,6 +145,27 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           right: [HeaderBtn(theme: theme, icon: LucideIcons.plus, onTap: () => _showAdd(context))],
         ),
 
+        // Prominent add button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: GestureDetector(
+            onTap: () => _showAdd(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: theme.accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.accent.withOpacity(0.3)),
+              ),
+              child: Row(children: [
+                Icon(LucideIcons.plus, color: theme.accent, size: 18),
+                const SizedBox(width: 10),
+                Text('Log an expense', style: TextStyle(color: theme.accent, fontWeight: FontWeight.w600, fontSize: 14)),
+              ]),
+            ),
+          ),
+        ),
+
         // Filter tabs
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
@@ -398,24 +419,32 @@ class _ExpenseRow extends StatelessWidget {
       confirmDismiss: (_) async => confirmDelete(context, title: 'Delete expense?',
           message: '${expense.category} · $cur${_fmtAmount(expense.amount)}'),
       onDismissed: (_) => onDelete(),
-      child: GestureDetector(
-        onLongPress: onEdit,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
-          decoration: hasTop ? BoxDecoration(border: Border(top: BorderSide(color: theme.rule, width: 1))) : null,
-          child: Row(children: [
-            IconChip(bg: color.withOpacity(0.13), size: 38,
-                child: Icon(_catIcon(expense.category), color: color, size: 18)),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(expense.category, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.ink)),
-              if (expense.note.isNotEmpty)
-                Text(expense.note, style: TextStyle(fontSize: 12, color: theme.muted), overflow: TextOverflow.ellipsis),
-            ])),
-            Text('$cur${_fmtAmount(expense.amount)}',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: theme.ink)),
-          ]),
-        ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+        decoration: hasTop ? BoxDecoration(border: Border(top: BorderSide(color: theme.rule, width: 1))) : null,
+        child: Row(children: [
+          IconChip(bg: color.withOpacity(0.13), size: 38,
+              child: Icon(_catIcon(expense.category), color: color, size: 18)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(expense.category, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.ink)),
+            if (expense.note.isNotEmpty)
+              Text(expense.note, style: TextStyle(fontSize: 12, color: theme.muted), overflow: TextOverflow.ellipsis),
+          ])),
+          Text('$cur${_fmtAmount(expense.amount)}',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: theme.ink)),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onEdit,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(padding: const EdgeInsets.all(4), child: Icon(LucideIcons.pencil, size: 13, color: theme.muted)),
+          ),
+          GestureDetector(
+            onTap: onDelete,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(padding: const EdgeInsets.all(4), child: Icon(LucideIcons.trash2, size: 13, color: theme.danger)),
+          ),
+        ]),
       ),
     );
   }
