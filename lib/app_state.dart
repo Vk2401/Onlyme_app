@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'models/task.dart';
 import 'models/debt.dart';
@@ -385,21 +386,58 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleDayRest(int dayId) {
+    gym = gym.copyWith(
+      days: gym.days.map((d) => d.id == dayId ? d.copyWith(isRest: !d.isRest) : d).toList(),
+    );
+    storage.writeGym(gym);
+    notifyListeners();
+  }
+
   // --- Snapshots CRUD ---
-  void addSnapshot(String cat, {required String note, required int hue}) {
+  void addSnapshot(String cat, {required String note, required int hue, String? imagePath}) {
     final id = DateTime.now().millisecondsSinceEpoch;
     final now = DateTime.now();
     final dateStr = '${_monthAbbr(now.month)} ${now.day}';
-    final snap = Snapshot(id: id, date: dateStr, note: note, hue: hue);
+    final snap = Snapshot(id: id, date: dateStr, note: note, hue: hue, imagePath: imagePath);
     snapshots = Map.from(snapshots)..[cat] = [snap, ...(snapshots[cat] ?? [])];
     storage.writeSnapshots(snapshots);
     notifyListeners();
   }
 
   void deleteSnapshot(String cat, int id) {
-    snapshots = Map.from(snapshots)..[cat] = (snapshots[cat] ?? []).where((s) => s.id != id).toList();
+    final list = snapshots[cat] ?? [];
+    // Delete the image file from internal storage if it exists
+    final snap = list.where((s) => s.id == id).firstOrNull;
+    if (snap?.imagePath != null) {
+      try { File(snap!.imagePath!).deleteSync(); } catch (_) {}
+    }
+    snapshots = Map.from(snapshots)..[cat] = list.where((s) => s.id != id).toList();
     storage.writeSnapshots(snapshots);
     notifyListeners();
+  }
+
+  /// Checks every snapshot's imagePath; clears the path if the file no longer exists.
+  void pruneDeletedSnapshotImages() {
+    bool changed = false;
+    final updated = <String, List<Snapshot>>{};
+    for (final cat in snapshots.keys) {
+      final list = <Snapshot>[];
+      for (final snap in snapshots[cat] ?? []) {
+        if (snap.imagePath != null && !File(snap.imagePath!).existsSync()) {
+          list.add(snap.copyWith(clearImagePath: true));
+          changed = true;
+        } else {
+          list.add(snap);
+        }
+      }
+      updated[cat] = list;
+    }
+    if (changed) {
+      snapshots = updated;
+      storage.writeSnapshots(snapshots);
+      notifyListeners();
+    }
   }
 
   // --- Weight log ---

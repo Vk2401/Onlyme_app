@@ -36,7 +36,16 @@ Future<String> exportAll(AppState state) async {
       'debts': state.debts.map((d) => d.toJson()).toList(),
       'events': state.events.map((e) => e.toJson()).toList(),
       'gym': state.gym.toJson(),
-      'snapshots': state.snapshots.map((k, v) => MapEntry(k, v.map((s) => s.toJson()).toList())),
+      'snapshots': state.snapshots.map((k, v) => MapEntry(k, v.map((s) {
+        final j = Map<String, dynamic>.from(s.toJson());
+        if (s.imagePath != null) {
+          try {
+            j['imageData'] = base64Encode(File(s.imagePath!).readAsBytesSync());
+          } catch (_) {}
+          j.remove('imagePath');
+        }
+        return j;
+      }).toList())),
       'weightLogs': state.weightLogs.map((w) => w.toJson()).toList(),
       'profile': state.profile.toJson(),
       'notes': state.notes.map((n) => n.toJson()).toList(),
@@ -102,11 +111,31 @@ Future<ImportResult> importAll(AppState state, File f) async {
       await s.writeGym(GymPlan.fromJson((data['gym'] as Map).cast<String, dynamic>()));
     }
     if (data['snapshots'] is Map) {
-      final raw = (data['snapshots'] as Map).cast<String, dynamic>();
-      final parsed = raw.map((k, v) => MapEntry(
-            k,
-            (v as List).map((e) => Snapshot.fromJson(e as Map<String, dynamic>)).toList(),
-          ));
+      final rawMap = (data['snapshots'] as Map).cast<String, dynamic>();
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final snapDir = Directory('${appDocDir.path}/snapshots');
+      if (!await snapDir.exists()) await snapDir.create(recursive: true);
+      final parsed = <String, List<Snapshot>>{};
+      for (final entry in rawMap.entries) {
+        final snaps = <Snapshot>[];
+        for (final item in (entry.value as List)) {
+          final j = Map<String, dynamic>.from(item as Map);
+          String? imagePath;
+          if (j['imageData'] is String) {
+            try {
+              final bytes = base64Decode(j['imageData'] as String);
+              final fileName = 'snap_${j['id']}.jpg';
+              final imgFile = File('${snapDir.path}/$fileName');
+              await imgFile.writeAsBytes(bytes);
+              imagePath = imgFile.path;
+            } catch (_) {}
+            j.remove('imageData');
+          }
+          j['imagePath'] = imagePath;
+          snaps.add(Snapshot.fromJson(j));
+        }
+        parsed[entry.key] = snaps;
+      }
       await s.writeSnapshots(parsed);
     }
     if (data['weightLogs'] is List) {
