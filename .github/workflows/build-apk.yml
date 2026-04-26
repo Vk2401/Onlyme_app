@@ -30,9 +30,6 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Regenerate icon master PNGs
-        run: flutter test tool/render_icon.dart
-
       - name: Propagate icons to platform sizes
         run: flutter pub run flutter_launcher_icons
 

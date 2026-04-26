@@ -15,8 +15,7 @@ flutter pub get                 # install deps
 flutter run                     # run on connected device / simulator
 flutter analyze                 # lint
 flutter test                    # all tests
-flutter test tool/render_icon.dart   # regenerate icon master PNG
-flutter pub run flutter_launcher_icons  # propagate icon to every platform size
+flutter pub run flutter_launcher_icons  # propagate icon PNGs to every platform size
 flutter build apk --release --split-per-abi
 flutter build ios --release
 ```
@@ -83,7 +82,7 @@ The repo ships `.claude/` so slash commands and project-specific agents are avai
 
 ### Slash commands (`.claude/commands/`)
 
-- **`/icon-regen`** — re-render `tool/render_icon.dart` → `assets/icon/app_icon{,_fg}.png` → iOS/Android sizes via `flutter_launcher_icons`.
+- **`/icon-regen`** — propagate `assets/icon/app_icon{,_fg}.png` → iOS/Android sizes via `flutter_launcher_icons`.
 - **`/add-domain <name>`** — scaffold a new domain end-to-end (model + storage + state + screen + routing + backup + doc row). Follows the existing conventions automatically.
 - **`/analyze-fix`** — run `flutter analyze` and fix every issue that isn't in the known baseline (two pre-existing infos).
 - **`/ship-apk [version]`** — build a release APK the same way CI does and drop it in `releases/`.

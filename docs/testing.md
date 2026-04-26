@@ -8,11 +8,7 @@ There are no unit tests yet. This doc captures how to run what exists and how to
 flutter test
 ```
 
-This runs every file under `test/` **and** `tool/render_icon.dart` (because it's a `testWidgets` file). If you only want to regenerate the icon without running any domain tests:
-
-```bash
-flutter test tool/render_icon.dart
-```
+This runs every file under `test/`.
 
 ## Analyze
 
@@ -26,7 +22,7 @@ Expected output after a clean build: `2 issues found` (the two pre-existing info
 
 Put Flutter-agnostic model tests under `test/models/` (e.g. `test/models/profile_test.dart`). Put widget tests under `test/widgets/`. Match the source folder structure so it's obvious what tests cover what.
 
-Model tests can be plain `test()` — no widget binding needed. Anything that paints needs `testWidgets()` and, if it does async Skia work (like icon rendering), wrap in `tester.runAsync`.
+Model tests can be plain `test()` — no widget binding needed. Anything that paints needs `testWidgets()`.
 
 ## What's worth testing first?
 
@@ -47,4 +43,4 @@ This is the canonical pattern for any test that wants a fresh in-memory store.
 
 ## CI
 
-`.github/workflows/build-apk.yml` runs `flutter test tool/render_icon.dart` (for the icon) and `flutter analyze --no-fatal-infos`. If you add a general `flutter test` step, make sure the icon test still works there — it does today because Flutter's test runner uses software rendering.
+`.github/workflows/build-apk.yml` runs `flutter pub run flutter_launcher_icons` (to propagate icon assets) and `flutter analyze --no-fatal-infos`. If you add a `flutter test` step, insert it before `flutter analyze`.
