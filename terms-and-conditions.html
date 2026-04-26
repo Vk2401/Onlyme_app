@@ -10,11 +10,12 @@
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Plus Jakarta Sans',sans-serif;background:#0f0f0f;color:#f0f0f0;min-height:100vh}
     a{color:inherit;text-decoration:none}
-    .hdr{border-bottom:1px solid #222;padding:16px 24px;display:flex;align-items:center;gap:10px}
-    .hdr img{width:32px;height:32px;border-radius:7px}
+    .hdr{border-bottom:1px solid #1e1e1e;padding:16px 24px;display:flex;align-items:center;gap:12px}
+    .icon-badge{width:32px;height:32px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .icon-badge svg{width:22px;height:22px}
     .hdr .brand{font-size:15px;font-weight:700}
-    .hdr .sub{font-size:13px;color:#666;margin-left:6px}
-    .hdr .back{margin-left:auto;font-size:13px;color:#666;border:1px solid #2a2a2a;padding:5px 12px;border-radius:6px}
+    .hdr .sub{font-size:13px;color:#555;margin-left:6px;font-weight:400}
+    .hdr .back{margin-left:auto;font-size:13px;color:#666;border:1px solid #2a2a2a;padding:5px 12px;border-radius:6px;white-space:nowrap}
     .hdr .back:hover{color:#f0f0f0;border-color:#555}
     .wrap{max-width:700px;margin:0 auto;padding:0 24px}
     h1{font-size:clamp(26px,6vw,44px);font-weight:700;letter-spacing:-1px;line-height:1.15}
@@ -32,7 +33,7 @@
 </head>
 <body>
   <header class="hdr">
-    <img src="icon.png" alt="Only Me">
+    <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill="#1a1a2e"/><path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#1a1a2e" stroke-width="2" stroke-linecap="round"/></svg></div>
     <span class="brand">Only Me<span class="sub">Terms &amp; Conditions</span></span>
     <a class="back" href="index.html">← Home</a>
   </header>
