@@ -1,28 +1,47 @@
 # Notifications
 
-OnlyMe uses **on-device scheduled notifications** via `flutter_local_notifications`. The OS fires them at the requested time even when the app is closed or the device has rebooted. There is no FCM / APNs / server component — this is consistent with the app's local-only posture.
+OnlyMe uses **on-device scheduled notifications** via `flutter_local_notifications`. The OS fires them at the requested time even when the app is closed or the device has rebooted. There is no FCM / APNs / server component — consistent with the app's local-only posture.
+
+## Delivery modes
+
+Each task and event reminder supports two delivery modes, selectable in the add/edit sheet when a date+time is set:
+
+| Mode | Android | iOS | Use for |
+|---|---|---|---|
+| **Notification** (default) | `exactAllowWhileIdle` — high-priority, survives Doze but subject to OEM battery killers | `timeSensitive` interruption level | Soft reminders that respect silent mode |
+| **Alarm** | `alarmClock` (setAlarmClock API) — highest priority, exempt from Doze + most OEM optimisations, shows clock icon in status bar | `critical` interruption level | Wake-up alarms, medication, deadlines |
+
+Alarm mode also plays at **alarm volume** — it bypasses silent/vibrate mode on Android via the `onlyme_alarms` channel with `AudioAttributesUsage.alarm`.
 
 ## What can be scheduled
 
 | Domain | Trigger | Fires |
 |---|---|---|
-| `TaskItem.scheduledAt` | Set in the Task add/edit sheet via the "No reminder" row | Once, at the chosen date + time |
-| `PlannedEvent.scheduledAt` | Set in the Event add/edit sheet | Twice: 24h before, and at the chosen time |
+| `TaskItem.scheduledAt` | "No reminder" row in the Task add/edit sheet | Once, at the chosen date + time |
+| `PlannedEvent.scheduledAt` | "No reminder" row in the Event add/edit sheet | Twice: 24 h before (normal mode only), and at the chosen time |
 
-Tasks and events without a `scheduledAt` generate no notifications — they behave exactly as before. The app is fully usable without granting notification permission.
+The day-before event notification always uses `exactAllowWhileIdle` regardless of the event's `isAlarm` flag — it is advisory, not an alarm.
+
+Tasks and events without a `scheduledAt` generate no notifications. The app is fully usable without granting any permission.
 
 ## Architecture
 
 ```
 lib/services/notifications_service.dart   ← single wrapper around the plugin
-  ├─ init()                                 — timezone DB + plugin init (called from main())
-  ├─ requestPermission()                    — iOS/Android prompt, called lazily
-  ├─ scheduleTask({id, title, body, at})
+  ├─ init()                               — timezone DB + plugin init (called from main())
+  ├─ hasNotificationPermission()          — real-time POST_NOTIFICATIONS status
+  ├─ hasExactAlarmPermission()            — real-time SCHEDULE_EXACT_ALARM status
+  ├─ isBatteryOptimizationDisabled()      — real-time battery unrestricted status
+  ├─ requestPermission()                  — iOS/Android prompt
+  ├─ openExactAlarmSettings()             — opens "Alarms & reminders" special-access page
+  ├─ requestBatteryOptimizationExemption()— opens battery optimisation settings
+  ├─ scheduleTask({id, title, body, at, isAlarm})
   ├─ cancelTask(id)
-  ├─ scheduleEvent({id, title, body, at})   — schedules BOTH at-time and day-before
-  ├─ cancelEvent(id)                        — cancels both slots
+  ├─ scheduleEvent({id, title, body, at, isAlarm}) — schedules at-time + day-before
+  ├─ cancelEvent(id)                      — cancels both slots
   ├─ cancelAll()
-  └─ pending()                              — for debugging
+  ├─ pending()                            — for debugging
+  └─ sendTestNotification()               — schedules a test 10 s from now; returns "ok" or error
 ```
 
 Every task/event CRUD method in `AppState` reschedules automatically:
@@ -30,50 +49,97 @@ Every task/event CRUD method in `AppState` reschedules automatically:
 - `addTask` / `addEvent` → schedule if `scheduledAt` set.
 - `editTask` / `editEvent` → cancel existing + schedule new (or cancel if cleared).
 - `toggleTask` → cancel when marked done, re-schedule if uncompleted and future.
-- `deleteTask` / `deleteEvent` → cancel.
+- `deleteTask` / `deleteEvent` → cancel all notification slots.
 
-Two private helpers on `AppState` — `_rescheduleTask` and `_rescheduleEvent` — encapsulate the cancel-then-reschedule flow. If you add a new mutation that changes `scheduledAt`, call the appropriate helper.
+Two private helpers — `_rescheduleTask` and `_rescheduleEvent` — encapsulate the cancel-then-reschedule flow. If you add a new mutation that changes `scheduledAt` or `isAlarm`, call the appropriate helper.
+
+## Notification channels (Android)
+
+| Channel ID | Name | Importance | Notes |
+|---|---|---|---|
+| `onlyme_tasks` | Task reminders | High | Normal task notifications |
+| `onlyme_events` | Event reminders | High | Normal event notifications |
+| `onlyme_alarms` | Alarms | Max | Alarm-mode; plays at alarm volume (`AudioAttributesUsage.alarm`); `fullScreenIntent: true` |
 
 ## Notification IDs
 
-The plugin requires integer IDs. We derive them from the domain `id` (which is a milliseconds-since-epoch):
+The plugin requires 32-bit integer IDs derived from the domain `id` (milliseconds-since-epoch):
 
-- **Tasks:** `id & 0x7FFFFFFE` — the low bit is cleared so the integer fits Android's 31-bit constraint and doesn't collide with the event day-before slot.
-- **Events:** reserves two slots. `id & 0x7FFFFFFE` for at-time, `(id & 0x7FFFFFFE) | 1` for day-before.
-
-Consequence: two domain records created in the same millisecond would collide. Practically impossible since ids come from `DateTime.now().millisecondsSinceEpoch` in user-driven code.
+- **Tasks:** `id & 0x7FFFFFFE` — LSB cleared, top bit cleared (positive).
+- **Events at-time:** `id & 0x7FFFFFFE` — same formula, different channel.
+- **Events day-before:** `(id & 0x7FFFFFFE) | 1` — LSB set, distinct from the at-time slot.
+- **Test notification:** `0x7FFFFFF0` — fixed constant, never collides with user data.
 
 ## Permission flow
 
-We do NOT request notification permission at app launch — Apple's guidelines and Android 13+ UX both recommend requesting permissions only when they're about to be used. `NotificationsService._ensureReadyAndPermitted` is called from every `scheduleX`; the first call triggers:
+Permissions are **never requested at app launch**. On Android 12+, `SCHEDULE_EXACT_ALARM` requires explicit user action in **Settings → Special app access → Alarms & reminders** — a manifest declaration alone is insufficient.
 
-1. **iOS:** `DarwinFlutterLocalNotificationsPlugin.requestPermissions(alert, badge, sound)` — the standard system prompt.
-2. **Android:** `requestNotificationsPermission()` (for Android 13+) AND `requestExactAlarmsPermission()` (for Android 12+). Exact alarms are optional — if denied, notifications still fire but can drift by up to ~15 minutes.
+Three permissions matter:
 
-If the user denies either, `requestPermission` returns `false`. We don't block — we still call `zonedSchedule`, it silently no-ops on iOS, and on Android it falls back to inexact delivery. The user can grant later via System Settings.
+| Permission | Why needed | What happens without it |
+|---|---|---|
+| `POST_NOTIFICATIONS` (Android 13+) | Show notification banners | Notifications fire but are invisible |
+| `SCHEDULE_EXACT_ALARM` (Android 12+) | Fire at exact time | Falls back to inexact (±15 min drift) |
+| Battery unrestricted | AlarmManager survives OEM battery killers | Alarms may not fire after app is cleared from recents |
 
-## What happens when the app is killed / the device reboots
+### Checking status from the UI
 
-- **iOS:** The OS retains every pending `UNNotificationRequest` for the app's bundle ID. Kill the app — notifications still fire. Reboot — still fire (the OS persists them).
-- **Android:** Scheduled alarms are persisted across reboots thanks to the `ScheduledNotificationBootReceiver` we register in `AndroidManifest.xml` with `RECEIVE_BOOT_COMPLETED`. The plugin re-arms the alarm manager on `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED`.
-- **Fresh install (or OS version migration that wipes scheduled alarms):** `AppState.replayScheduledNotifications()` runs on every app launch after `NotificationsService.init()`. It iterates every task/event whose `scheduledAt` is still in the future and re-schedules them, best-effort. This is idempotent — re-calling `scheduleX` with the same ID replaces the existing pending notification.
+**More → Notifications** shows real-time status of all three with direct action buttons. Status auto-refreshes via `WidgetsBindingObserver.didChangeAppLifecycleState` when the user returns from the Settings app.
+
+## Custom alarm sound
+
+Users can set a custom alarm sound in **More → Alarm Sound**:
+
+1. `FilePicker` picks any audio file.
+2. File is copied to `<app-documents>/alarms/alarm_sound.<ext>`.
+3. Path + display name stored in `Profile.alarmSoundPath` / `Profile.alarmSoundName` via `AppState.setAlarmSound(...)`.
+
+On iOS the sound field is not currently wired (uses system default).
+
+## Reliability
+
+- **iOS:** OS retains pending `UNNotificationRequest` across kills and reboots.
+- **Android:** `ScheduledNotificationBootReceiver` in `AndroidManifest.xml` re-arms `AlarmManager` entries on `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED`.
+- **AlarmClock mode** (`isAlarm=true`) uses `setAlarmClock()` — exempt from Doze, survives app cleared from recents, shown as a system clock alarm.
+- **Fresh install:** `AppState.replayScheduledNotifications()` runs on every launch, re-scheduling all future tasks/events. Idempotent.
 
 ## Backup
 
-`scheduledAt` is part of every task/event `toJson` / `fromJson`, so it round-trips through the export/import pipeline in `lib/storage/export_io.dart`. After import, `importAll` calls `AppState.reloadFromStorage()` and then `replayScheduledNotifications()`, so imported reminders start firing automatically on the new device.
+`scheduledAt` and `isAlarm` round-trip through export/import. The custom alarm sound is base64-encoded into the backup under `profile.alarmSoundData` + `profile.alarmSoundExt`. After import, `replayScheduledNotifications()` is called automatically so reminders fire on the new device.
 
-## Testing manually
+## Required Android manifest entries
 
-1. `flutter run` on a real device (simulators sometimes drop scheduled notifications after a long sleep).
-2. Create a task, tap the bell row, set a date + time 2 minutes in the future, save.
-3. Background the app (home button). Wait. The OS fires the alert at the chosen time.
-4. Repeat with an event for 2 days out — the day-before notification should land ~24h early.
+```xml
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+<uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+<uses-permission android:name="android.permission.VIBRATE"/>
+<uses-permission android:name="android.permission.WAKE_LOCK"/>
+<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
+<!-- ScheduledNotificationReceiver must be exported so AlarmManager can deliver -->
+<receiver android:exported="true"
+    android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
+```
+
+## Testing
+
+1. Run on a real device (simulators drop scheduled notifications after sleep).
+2. Go to **More → Notifications** — verify all three permission rows show "Granted".
+3. Tap "Send test notification" — notification should arrive ~10 s later.
+4. Create a task, set reminder 2 min in the future, background the app — notification fires.
+5. Alarm mode: toggle "Alarm mode" on, set device to silent — notification still plays at alarm volume.
+6. Boot test: set a future reminder, reboot — notification fires at the scheduled time.
 
 ## Open work
 
-- Global "Notifications" master-toggle in the Tweaks sheet or Profile so users can silence the app without uninstalling or revoking OS permission.
-- Recurring schedules (daily / weekly) — the plugin supports `matchDateTimeComponents: DateTimeComponents.time` for daily; wiring this up needs a `RepeatRule` enum on `TaskItem`.
+- Global notification master-toggle (mute all without revoking OS permission).
+- Recurring schedules (`DateTimeComponents.time` for daily reminders).
+- Custom alarm sound on iOS.
 
 ## Why local and not FCM?
 
-The app has no backend. FCM would require a server to deliver pushes + identity on the device. Local notifications achieve the same user outcome ("the phone buzzes at the scheduled time") without any network or account infrastructure, which is the whole point of OnlyMe.
+The app has no backend. Local notifications achieve the same outcome without any network or account infrastructure, consistent with OnlyMe's privacy-first design.

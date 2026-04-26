@@ -4,14 +4,15 @@
 
 ## Why one big ChangeNotifier?
 
-We considered Bloc, Riverpod, multiple providers, and a repository layer. For ~10 domains with trivial mutations, all of those would add more code than the mutations themselves. The rule of thumb: **if the class grows past ~600 lines, split by domain**. Until then, one class is the right tool.
+We considered Bloc, Riverpod, multiple providers, and a repository layer. For ~10 domains with trivial mutations, all of those add more code than the mutations themselves. Rule of thumb: **if the class grows past ~600 lines, split by domain**. Until then, one class is the right tool.
 
 ## Lifecycle
 
 ```dart
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final state = await AppState.load();       // reads SharedPreferences
+  await NotificationsService.instance.init();   // timezone DB + plugin channels
+  final state = await AppState.load();          // reads SharedPreferences
   runApp(ChangeNotifierProvider.value(
     value: state,
     child: const OnlyMeApp(),
@@ -23,7 +24,7 @@ void main() async {
 
 1. Opens `LocalStorage` (wraps `SharedPreferences.getInstance()`).
 2. Reads every domain key; falls back to seeds or empty lists when a key is missing.
-3. Persists a default profile on first launch so `createdAt` is stable (used for "Since Apr 2026" in More).
+3. Persists a default profile on first launch so `createdAt` is stable.
 4. Restores the last active `screen`, accent, dark mode, and last-sync timestamp.
 5. Returns the initialised state.
 
@@ -41,6 +42,7 @@ void main() async {
 | `notes` | `List<Note>` | `onlyme:notes` |
 | `links` | `List<SavedLink>` | `onlyme:links` |
 | `vault` | `List<VaultEntry>` | `onlyme:vault` |
+| `expenses` | `List<Expense>` | `onlyme:expenses` |
 | `screen` | `String` | `onlyme:screen` |
 | `theme` | `AppTheme` | derived from `onlyme:accent` + `onlyme:dark` |
 | `lastSyncAt` | `DateTime?` | `onlyme:lastSync` (placeholder — no backend yet) |
@@ -51,37 +53,55 @@ Every public mutation follows the same shape:
 
 ```dart
 void addThing(…) {
-  thing = <updated>;         // immutable list / replaced object
-  storage.writeThing(thing); // persist
-  notifyListeners();         // rebuild all watchers
+  thing = <updated>;          // immutable list / replaced object
+  storage.writeThing(thing);  // persist immediately
+  notifyListeners();           // rebuild all watchers
 }
 ```
 
 Do **not**:
+- Mutate lists in-place (use spread / `where` / `map`).
+- Call `notifyListeners()` without writing to storage first.
+- Call `NotificationsService` directly from the UI — go through AppState mutators.
 
-- Mutate list elements in place (always use spreads or `map`).
-- Skip `storage.writeX`. If the app is killed, the change is lost.
-- Skip `notifyListeners()`. The UI will go stale.
-- Push the mutation into the widget layer. All mutations go through `AppState`.
+## Notification integration
 
-## Reading state
+Domains with `scheduledAt` fields wire `NotificationsService` inside their mutators via two private helpers:
 
 ```dart
-// subscribe + rebuild on change
-final state = context.watch<AppState>();
+void _rescheduleTask(TaskItem t) {
+  // cancels if done or no scheduledAt; otherwise schedules with isAlarm flag
+}
 
-// one-shot read inside a callback (does not subscribe)
-context.read<AppState>().deleteTask(id);
+void _rescheduleEvent(PlannedEvent e) {
+  // cancels if no scheduledAt; otherwise schedules both at-time + day-before
+}
 ```
 
-For widgets deep in the tree that only need the theme, it's fine to read it via a parameter passed from the parent — that's the convention across this repo.
+Every `addTask`, `editTask`, `toggleTask`, `addEvent`, `editEvent` calls the appropriate helper. `deleteTask` / `deleteEvent` call `cancelTask` / `cancelEvent` directly.
 
-## Full-reload (used by import)
+```dart
+Future<void> replayScheduledNotifications() async {
+  // Re-arms all future task + event reminders from current state.
+  // Called: (a) on app startup in main.dart, (b) after import.
+}
+```
 
-`AppState.reloadFromStorage()` re-reads every key and refreshes every field + the theme, then notifies. It's used *only* by `lib/storage/export_io.dart` after an import overwrites everything on disk. Don't call it from UI code — ordinary mutations update state directly.
+## Profile mutations
 
-## Debugging
+```dart
+void setAlarmSound({required String? path, required String? name}) {
+  // Stores custom alarm sound path+name in profile.
+  // Pass null/null to clear.
+}
+```
 
-- **Why didn't my screen rebuild?** You used `context.read<AppState>()` in `build` instead of `watch`.
-- **Why is the value stale after a hot restart?** You forgot to call `storage.writeX(…)` in the mutator.
-- **Why is my new field `null` on first launch?** You didn't initialise it in `AppState.load()`.
+Also: `setAccent(AccentKey)`, `setDark(bool)`, `setScreen(String)`, `syncNow()` (placeholder), `reloadFromStorage()`.
+
+## `reloadFromStorage()`
+
+Reads every domain from storage into the in-memory fields, then calls `notifyListeners()`. Called after import to make the UI reflect the restored data without restarting the app.
+
+## Adding a new domain
+
+See [contributing.md](contributing.md). The short version: add a `late List<Thing> things` field, initialise it in `load()` and `reloadFromStorage()`, add `addThing / editThing / deleteThing`, call `storage.writeThing(...)` + `notifyListeners()` in each.
