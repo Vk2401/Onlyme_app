@@ -118,8 +118,7 @@ These Terms shall be governed by and construed in accordance with the laws of In
 If you have questions about these Terms, please contact:
 
 **Webronic**
-Email: [your-support-email@example.com]
-Website: [your-website.com]
+Email: vipvasanth433@gmail.com
 
 ---
 

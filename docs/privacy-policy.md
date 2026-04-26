@@ -126,8 +126,7 @@ If we make material changes to this Privacy Policy, the updated policy will be i
 If you have questions about this Privacy Policy, please contact:
 
 **Webronic**
-Email: [your-support-email@example.com]
-Website: [your-website.com]
+Email: vipvasanth433@gmail.com
 
 ---
 
