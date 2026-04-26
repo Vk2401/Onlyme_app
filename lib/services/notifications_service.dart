@@ -356,7 +356,9 @@ class NotificationsService {
           importance: Importance.max,
           priority: Priority.max,
           category: AndroidNotificationCategory.alarm,
-          fullScreenIntent: true,
+          // fullScreenIntent omitted — Android 14+ restricts USE_FULL_SCREEN_INTENT
+          // to communication/call apps. alarmClock schedule mode already provides
+          // OS-level alarm priority and status-bar clock icon without it.
           audioAttributesUsage: AudioAttributesUsage.alarm,
         ),
         iOS: DarwinNotificationDetails(
