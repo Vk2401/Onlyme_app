@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Privacy Policy — Only Me</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:#0f0f0f;color:#f0f0f0;min-height:100vh}
+    a{color:inherit;text-decoration:none}
+    .hdr{border-bottom:1px solid #222;padding:16px 24px;display:flex;align-items:center;gap:10px}
+    .hdr img{width:32px;height:32px;border-radius:7px}
+    .hdr .brand{font-size:15px;font-weight:700}
+    .hdr .sub{font-size:13px;color:#666;margin-left:6px}
+    .hdr .back{margin-left:auto;font-size:13px;color:#666;border:1px solid #2a2a2a;padding:5px 12px;border-radius:6px}
+    .hdr .back:hover{color:#f0f0f0;border-color:#555}
+    .wrap{max-width:700px;margin:0 auto;padding:0 24px}
+    h1{font-size:clamp(26px,6vw,44px);font-weight:700;letter-spacing:-1px;line-height:1.15}
+    h2{font-size:16px;font-weight:700;color:#f0f0f0;margin-bottom:8px}
+    p,li{font-size:15px;color:#999;line-height:1.75}
+    ul{padding-left:18px}
+    li{margin-bottom:4px}
+    .sec{margin-bottom:28px}
+    .meta{font-size:12px;color:#555;margin-bottom:40px}
+    .content{padding:44px 0 64px}
+    footer{border-top:1px solid #1e1e1e;padding:22px 24px;text-align:center;font-size:12px;color:#555}
+    footer a{color:#666}
+    footer a:hover{color:#f0f0f0}
+  </style>
+</head>
+<body>
+  <header class="hdr">
+    <img src="icon.png" alt="Only Me">
+    <span class="brand">Only Me<span class="sub">Privacy Policy</span></span>
+    <a class="back" href="index.html">← Home</a>
+  </header>
+  <div class="wrap">
+    <div class="content">
+      <h1>Privacy Policy</h1>
+      <p class="meta">Effective date: 26 April 2026</p>
+      <div class="sec"><h2>1. Introduction</h2><p>Only Me is a personal tracker application developed by Vip Vasanth, an independent developer. This Privacy Policy explains what data the app stores, how it is stored, and your rights.</p><p style="margin-top:10px"><strong style="color:#f0f0f0">Short version:</strong> Only Me stores all your data locally on your device. No data is ever collected, transmitted, or shared with anyone.</p></div>
+      <div class="sec"><h2>2. Information the app stores</h2><p>The following is stored <strong style="color:#f0f0f0">locally on your device only</strong>:</p><ul style="margin-top:10px"><li>Tasks, debts, events, gym plan, weight log — Android SharedPreferences</li><li>Snapshot / journal images — App internal documents directory</li><li>Notes, saved links — Android SharedPreferences</li><li>Vault entries (titles, usernames, encrypted passwords, URLs) — Android SharedPreferences</li><li>Expenses — Android SharedPreferences</li><li>Profile (name, date of birth, phone, currency) — Android SharedPreferences</li><li>Custom alarm sound — App internal documents directory</li><li>App preferences (theme, accent colour) — Android SharedPreferences</li></ul><p style="margin-top:14px">The app does <strong style="color:#f0f0f0">not</strong> collect analytics, advertising data, or any tracking information. No data is transmitted to any server. No account or registration is required.</p></div>
+      <div class="sec"><h2>3. Permissions used</h2><ul><li><strong style="color:#d0d0d0">CAMERA</strong> — Capturing photos for Snapshots</li><li><strong style="color:#d0d0d0">READ_MEDIA_IMAGES</strong> — Picking existing photos for Snapshots</li><li><strong style="color:#d0d0d0">POST_NOTIFICATIONS</strong> — Displaying scheduled reminders</li><li><strong style="color:#d0d0d0">SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM</strong> — Firing reminders at the exact scheduled time</li><li><strong style="color:#d0d0d0">RECEIVE_BOOT_COMPLETED</strong> — Re-scheduling reminders after reboot</li><li><strong style="color:#d0d0d0">VIBRATE, WAKE_LOCK</strong> — Playing alarm notifications</li><li><strong style="color:#d0d0d0">FOREGROUND_SERVICE</strong> — Supporting alarm delivery</li><li><strong style="color:#d0d0d0">REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</strong> — Ensuring alarms fire reliably</li></ul><p style="margin-top:12px">All permissions are used solely for the features described. No permission is used for data collection or advertising.</p></div>
+      <div class="sec"><h2>4. Data storage and security</h2><p>All data is stored using Android’s SharedPreferences and the app’s internal documents directory — sandboxed (inaccessible to other apps) and never transmitted off the device. Vault passwords are encrypted before being stored and are never saved or exported as plain text.</p></div>
+      <div class="sec"><h2>5. Backup files</h2><p>The Export feature creates a JSON file containing all your data. Vault passwords are included in encrypted form — never as plain text. The file is generated locally and shared via your device’s share sheet. You are responsible for the security of exported backup files.</p></div>
+      <div class="sec"><h2>6. Third-party services</h2><p>Only Me does not integrate any third-party analytics, advertising, crash-reporting, or cloud-sync services. All open-source Flutter packages operate locally only and do not send data to external servers.</p></div>
+      <div class="sec"><h2>7. Children’s privacy</h2><p>Only Me does not knowingly collect information from children under 13. The app has no account registration and collects no data that leaves the device.</p></div>
+      <div class="sec"><h2>8. Data deletion</h2><p>Delete all data at any time by clearing individual items in-app, going to Android Settings → Apps → Only Me → Storage → Clear Data, or uninstalling the app. There is no server-side data to request deletion of.</p></div>
+      <div class="sec"><h2>9. Changes to this policy</h2><p>Material changes will be included in the next app update with a revised effective date. Continued use constitutes acceptance.</p></div>
+      <div class="sec"><h2>Contact</h2><p>Vip Vasanth — Independent Developer<br><a href="mailto:vipvasanth433@gmail.com" style="color:#888;border-bottom:1px solid #333">vipvasanth433@gmail.com</a></p></div>
+    </div>
+  </div>
+  <footer><p>© 2026 Vip Vasanth &nbsp;·&nbsp; <a href="index.html">Home</a> &nbsp;·&nbsp; <a href="terms-and-conditions.html">Terms &amp; Conditions</a></p></footer>
+</body>
+</html>

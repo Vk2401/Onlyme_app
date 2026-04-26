@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Only Me — Private Personal Tracker</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:#0f0f0f;color:#f0f0f0;min-height:100vh}
+    a{color:inherit;text-decoration:none}
+    .hdr{border-bottom:1px solid #222;padding:16px 24px;display:flex;align-items:center;gap:10px}
+    .hdr img{width:32px;height:32px;border-radius:7px}
+    .hdr .brand{font-size:15px;font-weight:700}
+    .wrap{max-width:700px;margin:0 auto;padding:0 24px}
+    h1{font-size:clamp(26px,6vw,44px);font-weight:700;letter-spacing:-1px;line-height:1.15}
+    h2{font-size:16px;font-weight:700;color:#f0f0f0;margin-bottom:8px}
+    p,li{font-size:15px;color:#999;line-height:1.75}
+    ul{padding-left:18px}
+    li{margin-bottom:4px}
+    footer{border-top:1px solid #1e1e1e;padding:22px 24px;text-align:center;font-size:12px;color:#555}
+    footer a{color:#666}
+    footer a:hover{color:#f0f0f0}
+  </style>
+  <style>
+    .hero{padding:72px 0 56px}
+    .hero img.logo{width:88px;height:88px;border-radius:20px;display:block;margin-bottom:24px}
+    .tag{font-size:12px;font-weight:700;color:#555;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px}
+    .desc{font-size:16px;color:#888;line-height:1.8;max-width:500px;margin:16px 0 40px}
+    .btn{display:inline-flex;align-items:center;gap:10px;border:1px solid #2a2a2a;border-radius:10px;padding:12px 20px;font-size:14px;font-weight:600;transition:border-color .15s}
+    .btn:hover{border-color:#666}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;padding:48px 0;border-top:1px solid #1a1a1a}
+    .card{border:1px solid #1e1e1e;border-radius:10px;padding:18px}
+    .card .ico{font-size:20px;margin-bottom:8px}
+    .card h3{font-size:13px;font-weight:700;color:#f0f0f0;margin-bottom:3px}
+    .card p{font-size:12px;color:#555;line-height:1.5}
+    .bottom{padding:48px 0;border-top:1px solid #1a1a1a;text-align:center}
+    .bottom p{font-size:14px;color:#555;max-width:480px;margin:0 auto 20px}
+    .links{display:flex;gap:20px;justify-content:center}
+    .links a{font-size:13px;color:#666;border-bottom:1px solid #2a2a2a;padding-bottom:1px}
+    .links a:hover{color:#f0f0f0;border-color:#666}
+  </style>
+</head>
+<body>
+  <header class="hdr">
+    <img src="icon.png" alt="Only Me">
+    <span class="brand">Only Me</span>
+  </header>
+  <div class="wrap">
+    <section class="hero">
+      <img class="logo" src="icon.png" alt="Only Me">
+      <p class="tag">All-in-one · Private · Only yours</p>
+      <h1>Everything about you,<br>stays with you.</h1>
+      <p class="desc">A private, local-only personal tracker — tasks, finances, events, gym, snapshots, notes, saved links, and a password vault. No account. No cloud. No ads.</p>
+      <a class="btn" href="https://play.google.com/store/apps/details?id=com.webronic.onlyme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        Get it on Google Play
+      </a>
+    </section>
+    <div class="grid">
+      <div class="card"><div class="ico">✓</div><h3>Tasks</h3><p>Habits and to-dos with streaks and reminders.</p></div>
+      <div class="card"><div class="ico">💰</div><h3>Finance</h3><p>Debt tracking in both directions with payments.</p></div>
+      <div class="card"><div class="ico">📅</div><h3>Events</h3><p>Budget checklists and countdown to events.</p></div>
+      <div class="card"><div class="ico">🏐️</div><h3>Gym</h3><p>Weekly planner with body-weight log chart.</p></div>
+      <div class="card"><div class="ico">📷</div><h3>Snapshots</h3><p>Private photo journal by category.</p></div>
+      <div class="card"><div class="ico">🔒</div><h3>Vault</h3><p>Encrypted local password manager.</p></div>
+      <div class="card"><div class="ico">📝</div><h3>Notes</h3><p>Quick free-form text notes.</p></div>
+      <div class="card"><div class="ico">🔗</div><h3>Links</h3><p>Save and open URLs for later.</p></div>
+      <div class="card"><div class="ico">💸</div><h3>Expenses</h3><p>Daily spending tracker by category.</p></div>
+    </div>
+    <div class="bottom">
+      <p>No account. No server. No analytics. All data stored locally in Android’s sandboxed storage and never transmitted anywhere.</p>
+      <div class="links">
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms-and-conditions.html">Terms &amp; Conditions</a>
+      </div>
+    </div>
+  </div>
+  <footer><p>© 2026 Vip Vasanth — Independent Developer &nbsp;·&nbsp; <a href="mailto:vipvasanth433@gmail.com">vipvasanth433@gmail.com</a></p></footer>
+</body>
+</html>
