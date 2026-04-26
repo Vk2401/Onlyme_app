@@ -93,14 +93,18 @@ class NotificationsService {
 
   // Runs once per install/upgrade. Clears the plugin's SharedPreferences cache
   // if it contains data in an incompatible format.
+  //
+  // Key is versioned: v2 forces a re-run on devices where the v1 migration ran
+  // but used the wrong filename ('notification_plugin_cache.xml') and therefore
+  // never actually cleared anything.
   Future<void> _migrateStaleCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      const migratedKey = 'notif_cache_v17_cleared';
+      const migratedKey = 'notif_cache_cleared_v2';
       if (prefs.getBool(migratedKey) == true) return;
 
       // pendingNotificationRequests() calls loadScheduledNotifications internally.
-      // If it throws, the stored data is in the old format.
+      // If it throws, the stored data is in an incompatible format.
       bool cacheOk = false;
       try {
         await _plugin.pendingNotificationRequests();
@@ -108,24 +112,23 @@ class NotificationsService {
       } catch (_) {}
 
       if (!cacheOk) {
-        // Attempt 1: cancelAll() — clears the plugin's SharedPreferences entry.
-        // On some plugin versions cancelAll also reads first, so it may throw too.
-        bool cancelled = false;
+        // cancelAll() also reads before cancelling and may throw too — try it
+        // anyway, then fall through to direct file deletion.
         try {
           await _plugin.cancelAll();
-          cancelled = true;
         } catch (_) {}
 
-        // Attempt 2: delete the XML file directly so the next write starts fresh.
-        if (!cancelled) {
-          try {
-            final appDir = await getApplicationDocumentsDirectory();
-            final cacheFile = File(
-              '${appDir.parent.path}/shared_prefs/notification_plugin_cache.xml',
-            );
-            if (await cacheFile.exists()) await cacheFile.delete();
-          } catch (_) {}
-        }
+        // Delete the plugin's SharedPreferences XML directly.
+        // The plugin stores scheduled notifications in a file called
+        // "notification_details" (SharedPreferences name = file stem).
+        // On Android that lives at <data-dir>/shared_prefs/notification_details.xml.
+        try {
+          final appDir = await getApplicationDocumentsDirectory();
+          final cacheFile = File(
+            '${appDir.parent.path}/shared_prefs/notification_details.xml',
+          );
+          if (await cacheFile.exists()) await cacheFile.delete();
+        } catch (_) {}
       }
 
       await prefs.setBool(migratedKey, true);
