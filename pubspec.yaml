@@ -36,11 +36,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/
+    - assets/images/
 
 flutter_launcher_icons:
   image_path: "assets/icon/app_icon.png"
   android: "ic_launcher"
   ios: true
   remove_alpha_ios: true
-  adaptive_icon_background: "#5FD8D6"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icon/app_icon_fg.png"
