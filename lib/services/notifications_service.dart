@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -77,9 +79,57 @@ class NotificationsService {
         audioAttributesUsage: AudioAttributesUsage.alarm,
         playSound: true,
       ));
+
+      // flutter_local_notifications v17 changed its Gson serialisation format.
+      // Notifications saved by any older version cause "Missing type parameter"
+      // when v17 tries to deserialise them inside saveScheduledNotification.
+      // Run once: clear the stale cache so new notifications can be written;
+      // AppState.replayScheduledNotifications() re-arms everything afterward.
+      await _migrateStaleCache();
     }
 
     _ready = true;
+  }
+
+  // Runs once per install/upgrade. Clears the plugin's SharedPreferences cache
+  // if it contains data in an incompatible format.
+  Future<void> _migrateStaleCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      const migratedKey = 'notif_cache_v17_cleared';
+      if (prefs.getBool(migratedKey) == true) return;
+
+      // pendingNotificationRequests() calls loadScheduledNotifications internally.
+      // If it throws, the stored data is in the old format.
+      bool cacheOk = false;
+      try {
+        await _plugin.pendingNotificationRequests();
+        cacheOk = true;
+      } catch (_) {}
+
+      if (!cacheOk) {
+        // Attempt 1: cancelAll() — clears the plugin's SharedPreferences entry.
+        // On some plugin versions cancelAll also reads first, so it may throw too.
+        bool cancelled = false;
+        try {
+          await _plugin.cancelAll();
+          cancelled = true;
+        } catch (_) {}
+
+        // Attempt 2: delete the XML file directly so the next write starts fresh.
+        if (!cancelled) {
+          try {
+            final appDir = await getApplicationDocumentsDirectory();
+            final cacheFile = File(
+              '${appDir.parent.path}/shared_prefs/notification_plugin_cache.xml',
+            );
+            if (await cacheFile.exists()) await cacheFile.delete();
+          } catch (_) {}
+        }
+      }
+
+      await prefs.setBool(migratedKey, true);
+    } catch (_) {}
   }
 
   // ── Permission checks ─────────────────────────────────────────────────────
