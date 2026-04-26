@@ -81,9 +81,6 @@ class MoreScreen extends StatelessWidget {
         + state.vault.length;
     final since = DateTime.fromMillisecondsSinceEpoch(profile.createdAt);
     final displayName = (profile.name == null || profile.name!.isEmpty) ? 'Only me' : profile.name!;
-    final initial = (profile.name != null && profile.name!.isNotEmpty)
-        ? profile.name!.trim().substring(0, 1).toUpperCase()
-        : 'M';
 
     final totalExpenses = state.expenses.fold<int>(0, (s, e) => s + e.amount);
     final expensesSub = state.expenses.isEmpty
