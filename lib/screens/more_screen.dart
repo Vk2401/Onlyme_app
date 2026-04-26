@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
 import '../models/debt.dart';
+import '../services/notifications_service.dart';
 import '../storage/export_io.dart';
 import '../theme/app_theme.dart';
 import '../widgets/header.dart';
@@ -182,12 +183,9 @@ class MoreScreen extends StatelessWidget {
             fontSize: 12, fontWeight: FontWeight.w700, color: theme.muted, letterSpacing: 1,
           )),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: AppCard(theme: theme, pad: 0, child: Column(children: [
-            _AlarmSoundRow(theme: theme),
-            _BatteryOptRow(theme: theme),
-          ])),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: _NotificationsSection(),
         ),
 
         const SizedBox(height: 22),
@@ -315,7 +313,214 @@ String _fmtK(int n) {
   return '$n';
 }
 
-// ── Alarm sound picker row ───────────────────────────────────────────────────
+// ── Notifications section (live permission status + test) ─────────────────────
+
+class _NotificationsSection extends StatefulWidget {
+  const _NotificationsSection();
+  @override
+  State<_NotificationsSection> createState() => _NotificationsSectionState();
+}
+
+class _NotificationsSectionState extends State<_NotificationsSection>
+    with WidgetsBindingObserver {
+  bool _notifOk = true;
+  bool _exactOk = true;
+  bool _batteryOk = true;
+  bool _testBusy = false;
+  String? _testMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Re-check when user returns from Settings.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final svc = NotificationsService.instance;
+    final n = await svc.hasNotificationPermission();
+    final e = await svc.hasExactAlarmPermission();
+    final b = await svc.isBatteryOptimizationDisabled();
+    if (!mounted) return;
+    setState(() { _notifOk = n; _exactOk = e; _batteryOk = b; });
+  }
+
+  Future<void> _sendTest() async {
+    setState(() { _testBusy = true; _testMsg = null; });
+    final result = await NotificationsService.instance.sendTestNotification();
+    if (!mounted) return;
+    setState(() {
+      _testBusy = false;
+      _testMsg = result == 'ok'
+          ? 'Test notification scheduled — look for it in ~10 seconds'
+          : 'Failed: $result';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.read<AppState>().theme;
+    return Column(children: [
+      // Permission status card
+      AppCard(theme: theme, pad: 0, child: Column(children: [
+        _PermRow(
+          theme: theme,
+          icon: LucideIcons.bell,
+          label: 'Notifications',
+          ok: _notifOk,
+          fixLabel: 'Grant',
+          onFix: () async {
+            await NotificationsService.instance.requestPermission();
+            _refresh();
+          },
+        ),
+        _PermRow(
+          theme: theme,
+          icon: LucideIcons.alarmClock,
+          label: 'Exact alarms',
+          subLabel: 'Settings → Special app access → Alarms & reminders',
+          ok: _exactOk,
+          fixLabel: 'Open settings',
+          onFix: () async {
+            await NotificationsService.instance.openExactAlarmSettings();
+            _refresh();
+          },
+          hasTop: true,
+        ),
+        _PermRow(
+          theme: theme,
+          icon: LucideIcons.zap,
+          label: 'Battery unrestricted',
+          subLabel: 'Settings → Apps → Only Me → Battery → Unrestricted',
+          ok: _batteryOk,
+          fixLabel: 'Open settings',
+          onFix: () async {
+            await NotificationsService.instance.requestBatteryOptimizationExemption();
+            _refresh();
+          },
+          hasTop: true,
+        ),
+      ])),
+
+      const SizedBox(height: 10),
+
+      // Test notification button
+      GestureDetector(
+        onTap: _testBusy ? null : _sendTest,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: theme.accent.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: theme.accent.withOpacity(0.35)),
+          ),
+          child: Row(children: [
+            Icon(_testBusy ? LucideIcons.loader : LucideIcons.send,
+                color: theme.accent, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text('Send test notification',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.accent)),
+              if (_testMsg != null)
+                Text(_testMsg!,
+                    style: TextStyle(fontSize: 11, color: theme.muted, height: 1.3)),
+              if (_testMsg == null)
+                Text('Fires in 10 s — confirms the pipeline works',
+                    style: TextStyle(fontSize: 11, color: theme.muted)),
+            ])),
+          ]),
+        ),
+      ),
+
+      const SizedBox(height: 10),
+
+      // Alarm sound picker
+      AppCard(theme: theme, pad: 0, child: _AlarmSoundRow(theme: theme)),
+    ]);
+  }
+}
+
+class _PermRow extends StatelessWidget {
+  final AppTheme theme;
+  final IconData icon;
+  final String label;
+  final String? subLabel;
+  final bool ok;
+  final String fixLabel;
+  final VoidCallback onFix;
+  final bool hasTop;
+  const _PermRow({
+    required this.theme,
+    required this.icon,
+    required this.label,
+    this.subLabel,
+    required this.ok,
+    required this.fixLabel,
+    required this.onFix,
+    this.hasTop = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = ok ? const Color(0xFF22C55E) : theme.danger;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+      decoration: hasTop ? BoxDecoration(border: Border(top: BorderSide(color: theme.rule, width: 1))) : null,
+      child: Row(children: [
+        Icon(icon, size: 18, color: ok ? theme.ink2 : theme.danger),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          Row(children: [
+            Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+                color: ok ? theme.ink : theme.danger)),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(ok ? 'Granted' : 'Missing',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor)),
+            ),
+          ]),
+          if (!ok && subLabel != null) ...[
+            const SizedBox(height: 2),
+            Text(subLabel!, style: TextStyle(fontSize: 10, color: theme.muted, height: 1.3)),
+          ],
+        ])),
+        if (!ok)
+          GestureDetector(
+            onTap: onFix,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.danger.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(fixLabel,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.danger)),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+// ── Alarm sound picker ─────────────────────────────────────────────────────────
 
 class _AlarmSoundRow extends StatelessWidget {
   final AppTheme theme;
@@ -376,107 +581,8 @@ class _AlarmSoundRow extends StatelessWidget {
     await src.copy(dest.path);
 
     if (!context.mounted) return;
-    state.setAlarmSound(
-      path: dest.path,
-      name: picked.files.single.name,
-    );
+    state.setAlarmSound(path: dest.path, name: picked.files.single.name);
   }
-}
-
-// ── Battery optimization guidance row ────────────────────────────────────────
-
-class _BatteryOptRow extends StatelessWidget {
-  final AppTheme theme;
-  const _BatteryOptRow({required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showGuidance(context),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.rule, width: 1))),
-          child: Row(children: [
-            IconChip(
-              bg: const Color(0xFFFBBF24).withOpacity(0.13), size: 36,
-              child: const Icon(LucideIcons.batteryCharging, color: Color(0xFFFBBF24), size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              Text('Background alarms', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.1)),
-              const SizedBox(height: 1),
-              Text('Fix alarms not firing after app close', style: TextStyle(fontSize: 12, color: theme.muted), maxLines: 1),
-            ])),
-            Icon(LucideIcons.info, color: theme.muted, size: 16),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  void _showGuidance(BuildContext context) {
-    final theme = context.read<AppState>().theme;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.5),
-      builder: (_) => Container(
-        decoration: BoxDecoration(
-          color: theme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: theme.rule),
-        ),
-        padding: const EdgeInsets.fromLTRB(22, 20, 22, 40),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 18),
-          Text('Fix background alarms', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
-          const SizedBox(height: 6),
-          Text('If reminders don\'t fire after the app is cleared from recents, do the steps below for your device.',
-              style: TextStyle(fontSize: 13, color: theme.muted, height: 1.5)),
-          const SizedBox(height: 20),
-          _Step(theme: theme, num: '1', text: 'Open  Settings → Apps → Only Me → Battery'),
-          const SizedBox(height: 12),
-          _Step(theme: theme, num: '2', text: 'Set battery usage to Unrestricted (or "Don\'t optimise")'),
-          const SizedBox(height: 12),
-          _Step(theme: theme, num: '3', text: 'Settings → Apps → Special app access → Alarms & reminders → allow Only Me'),
-          const SizedBox(height: 12),
-          _Step(theme: theme, num: '4', text: 'On Xiaomi/MIUI: also enable Autostart for Only Me'),
-          const SizedBox(height: 24),
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(color: theme.accent, borderRadius: BorderRadius.circular(14),
-                  boxShadow: [BoxShadow(color: theme.glow, blurRadius: 20, offset: const Offset(0, 6))]),
-              alignment: Alignment.center,
-              child: const Text('Got it', style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w700)),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _Step extends StatelessWidget {
-  final AppTheme theme;
-  final String num;
-  final String text;
-  const _Step({required this.theme, required this.num, required this.text});
-  @override
-  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Container(
-      width: 24, height: 24,
-      decoration: BoxDecoration(color: theme.accent.withOpacity(0.15), shape: BoxShape.circle),
-      alignment: Alignment.center,
-      child: Text(num, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.accent)),
-    ),
-    const SizedBox(width: 10),
-    Expanded(child: Text(text, style: TextStyle(fontSize: 13, color: theme.ink, height: 1.4))),
-  ]);
 }
 
 int _snapsThisMonth(AppState state) {

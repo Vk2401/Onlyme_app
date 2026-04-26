@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -22,15 +23,14 @@ class NotificationsService {
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
-  bool _permissionAsked = false;
 
   // IDs: tasks use id as-is; events reserve two slots (even=at-time, odd=day-before).
   static int _taskId(int domainId) => domainId & 0x7FFFFFFE;
   static int _eventAtId(int domainId) => domainId & 0x7FFFFFFE;
   static int _eventDayBeforeId(int domainId) => (domainId & 0x7FFFFFFE) | 1;
+  static const _kTestId = 0x7FFFFFF0;
 
-  // Channel IDs — must match what is declared in AndroidManifest (channels are
-  // created at runtime via createNotificationChannel).
+  // Channel IDs
   static const _chTasksId = 'onlyme_tasks';
   static const _chEventsId = 'onlyme_events';
   static const _chAlarmsId = 'onlyme_alarms';
@@ -53,10 +53,6 @@ class NotificationsService {
       const InitializationSettings(android: android, iOS: darwin, macOS: darwin),
     );
 
-    // Create notification channels on Android. Channels are immutable after
-    // creation, so we create all three up-front. The alarm channel uses the
-    // ALARM audio stream so it plays at alarm volume (not silenced by DND
-    // profiles that exclude alarms).
     if (Platform.isAndroid) {
       final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()!;
@@ -67,15 +63,12 @@ class NotificationsService {
         description: 'Reminders for scheduled tasks',
         importance: Importance.high,
       ));
-
       await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
         _chEventsId,
         'Event reminders',
         description: 'Reminders for planned events',
         importance: Importance.high,
       ));
-
-      // Alarm channel: plays through alarm volume, bypasses most DND modes.
       await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
         _chAlarmsId,
         'Alarms',
@@ -89,31 +82,72 @@ class NotificationsService {
     _ready = true;
   }
 
-  Future<bool> requestPermission() async {
-    if (_permissionAsked) return true;
-    _permissionAsked = true;
+  // ── Permission checks ─────────────────────────────────────────────────────
 
+  /// POST_NOTIFICATIONS (Android 13+) or equivalent.
+  Future<bool> hasNotificationPermission() async {
+    if (!Platform.isAndroid) return true;
+    return (await Permission.notification.status).isGranted;
+  }
+
+  /// SCHEDULE_EXACT_ALARM — must be user-granted in Special app access on Android 12+.
+  /// Without this, exactAllowWhileIdle falls back to inexact (may be delayed >15 min).
+  Future<bool> hasExactAlarmPermission() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final status = await Permission.scheduleExactAlarm.status;
+      return status.isGranted;
+    } catch (_) {
+      return true; // Android < 12 — permission doesn't exist, assume granted
+    }
+  }
+
+  /// Battery optimisation exemption — if not exempt the OS may kill the
+  /// AlarmManager receiver on some OEMs when the app is cleared from recents.
+  Future<bool> isBatteryOptimizationDisabled() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      return (await Permission.ignoreBatteryOptimizations.status).isGranted;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Request POST_NOTIFICATIONS + exact alarm permission.
+  Future<void> requestPermission() async {
     if (Platform.isIOS || Platform.isMacOS) {
       final ios = _plugin.resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin>();
-      final granted = await ios?.requestPermissions(alert: true, badge: true, sound: true);
-      return granted ?? false;
+      await ios?.requestPermissions(alert: true, badge: true, sound: true);
+      return;
     }
     if (Platform.isAndroid) {
+      await Permission.notification.request();
+      // requestExactAlarmsPermission opens the "Alarms & reminders" settings
+      // page on Android 12+ so the user can grant it manually.
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
-      final notifGranted = await android?.requestNotificationsPermission() ?? true;
-      // Exact-alarm permission is required on Android 12+ (API 31+).
-      // Without it, delivery can be delayed ~15 min. Without USE_EXACT_ALARM /
-      // SCHEDULE_EXACT_ALARM being granted, alarm-clock mode falls back to
-      // inexact but still fires eventually.
       await android?.requestExactAlarmsPermission();
-      return notifGranted;
     }
-    return true;
   }
 
-  // ── Public schedule API ───────────────────────────────────────────────────
+  /// Open the "Alarms & reminders" special-access page (Android 12+).
+  Future<void> openExactAlarmSettings() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await Permission.scheduleExactAlarm.request();
+    } catch (_) {}
+  }
+
+  /// Open battery-optimisation exemption settings.
+  Future<void> requestBatteryOptimizationExemption() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await Permission.ignoreBatteryOptimizations.request();
+    } catch (_) {}
+  }
+
+  // ── Schedule / cancel API ─────────────────────────────────────────────────
 
   Future<void> scheduleTask({
     required int id,
@@ -122,23 +156,23 @@ class NotificationsService {
     required DateTime at,
     bool isAlarm = false,
   }) async {
-    await _ensureReadyAndPermitted(at);
+    if (!_ready) await init();
     if (at.isBefore(DateTime.now())) return;
-    await _plugin.zonedSchedule(
-      _taskId(id),
-      title,
-      body ?? 'Task reminder',
-      tz.TZDateTime.from(at, tz.local),
-      isAlarm ? _alarmDetails() : _taskDetails(),
-      // alarmClock uses setAlarmClock() — highest-priority Android alarm,
-      // survives Doze + OEM battery killers; shows clock icon in status bar.
-      androidScheduleMode: isAlarm
-          ? AndroidScheduleMode.alarmClock
-          : AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: 'task:$id',
-    );
+    try {
+      await _plugin.zonedSchedule(
+        _taskId(id),
+        title,
+        body ?? 'Task reminder',
+        tz.TZDateTime.from(at, tz.local),
+        isAlarm ? _alarmDetails() : _taskDetails(),
+        androidScheduleMode: isAlarm
+            ? AndroidScheduleMode.alarmClock
+            : AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'task:$id',
+      );
+    } catch (_) {}
   }
 
   Future<void> cancelTask(int id) => _plugin.cancel(_taskId(id));
@@ -150,46 +184,47 @@ class NotificationsService {
     required DateTime at,
     bool isAlarm = false,
   }) async {
-    await _ensureReadyAndPermitted(at);
+    if (!_ready) await init();
     final now = DateTime.now();
     final details = isAlarm ? _alarmDetails() : _eventDetails();
     final schedMode = isAlarm
         ? AndroidScheduleMode.alarmClock
         : AndroidScheduleMode.exactAllowWhileIdle;
 
-    if (at.isAfter(now)) {
-      await _plugin.zonedSchedule(
-        _eventAtId(id),
-        title,
-        body ?? 'Event starting',
-        tz.TZDateTime.from(at, tz.local),
-        details,
-        androidScheduleMode: schedMode,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'event:$id',
-      );
-    } else {
-      await _plugin.cancel(_eventAtId(id));
-    }
+    try {
+      if (at.isAfter(now)) {
+        await _plugin.zonedSchedule(
+          _eventAtId(id),
+          title,
+          body ?? 'Event starting',
+          tz.TZDateTime.from(at, tz.local),
+          details,
+          androidScheduleMode: schedMode,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'event:$id',
+        );
+      } else {
+        await _plugin.cancel(_eventAtId(id));
+      }
 
-    // Day-before reminder (skip if already within 24h; use normal mode regardless).
-    final dayBefore = at.subtract(const Duration(days: 1));
-    if (dayBefore.isAfter(now)) {
-      await _plugin.zonedSchedule(
-        _eventDayBeforeId(id),
-        'Tomorrow: $title',
-        body ?? 'Event in 1 day',
-        tz.TZDateTime.from(dayBefore, tz.local),
-        _eventDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'event:$id',
-      );
-    } else {
-      await _plugin.cancel(_eventDayBeforeId(id));
-    }
+      final dayBefore = at.subtract(const Duration(days: 1));
+      if (dayBefore.isAfter(now)) {
+        await _plugin.zonedSchedule(
+          _eventDayBeforeId(id),
+          'Tomorrow: $title',
+          body ?? 'Event in 1 day',
+          tz.TZDateTime.from(dayBefore, tz.local),
+          _eventDetails(),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'event:$id',
+        );
+      } else {
+        await _plugin.cancel(_eventDayBeforeId(id));
+      }
+    } catch (_) {}
   }
 
   Future<void> cancelEvent(int id) async {
@@ -202,12 +237,29 @@ class NotificationsService {
   Future<List<PendingNotificationRequest>> pending() =>
       _plugin.pendingNotificationRequests();
 
-  // ── Internals ─────────────────────────────────────────────────────────────
-
-  Future<void> _ensureReadyAndPermitted(DateTime target) async {
+  /// Schedules a test notification 10 seconds from now.
+  /// Use this to verify the pipeline works end-to-end.
+  Future<String> sendTestNotification() async {
     if (!_ready) await init();
-    if (!_permissionAsked) await requestPermission();
+    try {
+      final at = DateTime.now().add(const Duration(seconds: 10));
+      await _plugin.zonedSchedule(
+        _kTestId,
+        'Test notification',
+        'Notifications are working! ✓',
+        tz.TZDateTime.from(at, tz.local),
+        _taskDetails(),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      return 'ok';
+    } catch (e) {
+      return 'error: $e';
+    }
   }
+
+  // ── Internals ─────────────────────────────────────────────────────────────
 
   NotificationDetails _taskDetails() => const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -251,7 +303,6 @@ class NotificationsService {
           importance: Importance.max,
           priority: Priority.max,
           category: AndroidNotificationCategory.alarm,
-          // fullScreenIntent shows a heads-up banner even on lock screen.
           fullScreenIntent: true,
           audioAttributesUsage: AudioAttributesUsage.alarm,
         ),
