@@ -62,6 +62,17 @@ Update `lib/storage/export_io.dart`:
 
 That's it. No routes to configure, no providers to register, no generated code to run.
 
+### 7. (Optional) Scheduled reminders
+
+If the domain has a `scheduledAt: DateTime?` field, follow the Tasks / Events pattern:
+
+- Add `bool isAlarm = false` to the model. Update `copyWith`, `toJson` (`'isAlarm': isAlarm`), and `fromJson` (`j['isAlarm'] as bool? ?? false`).
+- Add a private `_rescheduleThing(Thing t)` helper to `AppState` that calls `NotificationsService.instance.scheduleTask(...)` or `cancelTask(...)`. Wire it into every mutator that touches `scheduledAt` or `isAlarm`.
+- Add `cancelTask(id)` / `cancelEvent(id)` in `deleteThing`.
+- Include `replayScheduledNotifications` coverage for the new domain.
+- Add an alarm-mode toggle in the add/edit sheet (shown only when `scheduledAt != null`), using the `_AlarmToggleRow` design from `tasks_screen.dart` as a template.
+- See [notifications.md](notifications.md) for full details.
+
 ## Code style
 
 - Dart `format` is on by default; there's no CI formatter check, but keep lines ≤100 chars.
