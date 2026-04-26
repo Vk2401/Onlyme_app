@@ -118,7 +118,7 @@ Password manager entry.
 | `username`, `url`, `note` | Optional |
 | `password` | Required |
 
-**Security note:** Stored as plain JSON in SharedPreferences. No device-level encryption. Data never leaves the device, but is not hardened against on-device attackers. If you add sync, **encrypt before writing**.
+**Security note:** Passwords are encrypted by `lib/services/vault_crypto.dart` (XOR cipher with an app-embedded key) before being stored. The `password` field is always saved as `enc:<base64url>` — never plain text. Other vault fields (title, username, url, note) are stored unencrypted. If you add sync, apply proper AES encryption before transmitting any vault data.
 
 ### `Expense` — `lib/models/expense.dart`
 Single expense entry for the daily expense tracker.
