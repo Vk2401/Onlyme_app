@@ -132,7 +132,13 @@ class _NoteDismiss extends StatelessWidget {
                       style: TextStyle(fontSize: 13, color: theme.ink2, height: 1.4)),
               ])),
               GestureDetector(
-                onTap: onDelete, behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  final ok = await confirmDelete(context,
+                      title: 'Delete note?',
+                      message: note.title.isEmpty ? note.body : note.title);
+                  if (ok) onDelete();
+                },
+                behavior: HitTestBehavior.opaque,
                 child: Padding(padding: const EdgeInsets.only(left: 8),
                     child: Icon(LucideIcons.trash2, size: 15, color: theme.danger)),
               ),

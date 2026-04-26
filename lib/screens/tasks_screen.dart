@@ -229,7 +229,10 @@ class _DismissibleTask extends StatelessWidget {
             Positioned(
               top: 6, right: 6,
               child: GestureDetector(
-                onTap: onDelete,
+                onTap: () async {
+                  final ok = await confirmDelete(context, title: 'Delete task?', message: task.title);
+                  if (ok) onDelete();
+                },
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
                   padding: const EdgeInsets.all(6),
@@ -261,6 +264,7 @@ class _TaskSheetState extends State<_TaskSheet> {
   late String _icon;
   late Color _color;
   DateTime? _scheduledAt;
+  bool _isAlarm = false;
 
   @override
   void initState() {
@@ -272,6 +276,7 @@ class _TaskSheetState extends State<_TaskSheet> {
     _icon = t?.icon ?? 'checkCircle';
     _color = t?.color ?? _colorPalette[0];
     _scheduledAt = t?.scheduledAt;
+    _isAlarm = t?.isAlarm ?? false;
   }
 
   @override
@@ -328,8 +333,17 @@ class _TaskSheetState extends State<_TaskSheet> {
                 if (v != null && _time.text.trim().isEmpty) {
                   _time.text = _formatClock(v);
                 }
+                if (v == null) _isAlarm = false;
               }),
             ),
+            if (_scheduledAt != null) ...[
+              const SizedBox(height: 8),
+              _AlarmToggleRow(
+                theme: theme,
+                value: _isAlarm,
+                onChanged: (v) => setState(() => _isAlarm = v),
+              ),
+            ],
             const SizedBox(height: 16),
 
             // Icon picker
@@ -420,6 +434,7 @@ class _TaskSheetState extends State<_TaskSheet> {
         color: _color,
         scheduledAt: _scheduledAt,
         clearScheduledAt: _scheduledAt == null,
+        isAlarm: _isAlarm,
       ));
     } else {
       state.addTask(
@@ -429,6 +444,7 @@ class _TaskSheetState extends State<_TaskSheet> {
         icon: _icon,
         color: _color,
         scheduledAt: _scheduledAt,
+        isAlarm: _isAlarm,
       );
     }
     Navigator.of(context).pop();
@@ -494,6 +510,56 @@ class _ReminderRow extends StatelessWidget {
     );
     if (time == null) return;
     onChange(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+}
+
+class _AlarmToggleRow extends StatelessWidget {
+  final AppTheme theme;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _AlarmToggleRow({required this.theme, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: value ? theme.accent.withOpacity(0.1) : theme.bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: value ? theme.accent.withOpacity(0.4) : Colors.transparent),
+        ),
+        child: Row(children: [
+          Icon(LucideIcons.alarmClock, size: 18, color: value ? theme.accent : theme.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Text('Alarm mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+                color: value ? theme.accent : theme.ink)),
+            Text('Fires at alarm volume · bypasses silent mode',
+                style: TextStyle(fontSize: 11, color: theme.muted)),
+          ])),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 40, height: 22,
+            decoration: BoxDecoration(
+              color: value ? theme.accent : theme.rule,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Stack(children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                left: value ? 20 : 2, top: 2,
+                child: Container(width: 18, height: 18, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

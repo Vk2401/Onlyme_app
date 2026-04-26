@@ -45,6 +45,7 @@ class GymDay {
   final String label;
   final bool today;
   final bool done;
+  final bool isRest;
   final List<Exercise> exercises;
 
   const GymDay({
@@ -53,15 +54,17 @@ class GymDay {
     required this.label,
     this.today = false,
     required this.done,
+    this.isRest = false,
     required this.exercises,
   });
 
-  GymDay copyWith({String? label, List<Exercise>? exercises, bool? done}) => GymDay(
+  GymDay copyWith({String? label, List<Exercise>? exercises, bool? done, bool? isRest}) => GymDay(
         id: id,
         short: short,
         label: label ?? this.label,
         today: today,
         done: done ?? this.done,
+        isRest: isRest ?? this.isRest,
         exercises: exercises ?? this.exercises,
       );
 
@@ -71,6 +74,7 @@ class GymDay {
         'label': label,
         'today': today,
         'done': done,
+        'isRest': isRest,
         'exercises': exercises.map((e) => e.toJson()).toList(),
       };
 
@@ -80,6 +84,8 @@ class GymDay {
         label: j['label'] as String,
         today: j['today'] as bool? ?? false,
         done: j['done'] as bool,
+        // backward compat: old data with label='rest' auto-migrates to isRest=true
+        isRest: j['isRest'] as bool? ?? (j['label'] as String).toLowerCase() == 'rest',
         exercises: (j['exercises'] as List)
             .map((e) => Exercise.fromJson(e as Map<String, dynamic>))
             .toList(),

@@ -59,6 +59,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Only Me uses the camera to capture snapshot photos for your visual journal.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Only Me reads photos from your library to add snapshots to your visual journal.</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

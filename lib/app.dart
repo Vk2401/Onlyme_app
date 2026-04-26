@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import 'app_state.dart';
@@ -20,6 +21,7 @@ import 'screens/placeholder_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/tweaks_sheet.dart';
 import 'widgets/add_sheet.dart';
+import 'widgets/confirm_sheet.dart';
 
 class OnlyMeApp extends StatelessWidget {
   const OnlyMeApp({super.key});
@@ -118,7 +120,23 @@ class _AppShellState extends State<AppShell> {
 
     final screenKey = ValueKey(state.screen);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (showTweaks) { setState(() => showTweaks = false); return; }
+        if (addOpen) { setState(() => addOpen = false); return; }
+        if (state.screen != 'home') { state.setScreen('home'); return; }
+        final exit = await confirmDelete(
+          context,
+          title: 'Exit app?',
+          message: 'All your data is saved.',
+          confirmLabel: 'Exit',
+          icon: LucideIcons.logOut,
+        );
+        if (exit) SystemNavigator.pop();
+      },
+      child: Scaffold(
       backgroundColor: theme.bg,
       body: Container(
         color: theme.bg,
@@ -187,7 +205,7 @@ class _AppShellState extends State<AppShell> {
           ]),
         ),
       ),
-    );
+    ));
   }
 
   String _placeholderLabel(String key) => switch (key) {

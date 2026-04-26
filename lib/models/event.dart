@@ -50,6 +50,7 @@ class PlannedEvent {
   final Color color;
   final List<EventItem> items;
   final DateTime? scheduledAt;
+  final bool isAlarm;
 
   const PlannedEvent({
     required this.id,
@@ -60,6 +61,7 @@ class PlannedEvent {
     required this.color,
     required this.items,
     this.scheduledAt,
+    this.isAlarm = false,
   });
 
   PlannedEvent copyWith({
@@ -71,6 +73,7 @@ class PlannedEvent {
     List<EventItem>? items,
     DateTime? scheduledAt,
     bool clearScheduledAt = false,
+    bool? isAlarm,
   }) =>
       PlannedEvent(
         id: id,
@@ -81,6 +84,7 @@ class PlannedEvent {
         color: color ?? this.color,
         items: items ?? this.items,
         scheduledAt: clearScheduledAt ? null : (scheduledAt ?? this.scheduledAt),
+        isAlarm: isAlarm ?? this.isAlarm,
       );
 
   int get totalEst => items.fold(0, (s, i) => s + i.est);
@@ -96,6 +100,7 @@ class PlannedEvent {
         'color': color.value,
         'items': items.map((e) => e.toJson()).toList(),
         'scheduledAt': scheduledAt?.toIso8601String(),
+        'isAlarm': isAlarm,
       };
 
   factory PlannedEvent.fromJson(Map<String, dynamic> j) => PlannedEvent(
@@ -111,5 +116,6 @@ class PlannedEvent {
         scheduledAt: (j['scheduledAt'] as String?) != null
             ? DateTime.tryParse(j['scheduledAt'] as String)
             : null,
+        isAlarm: j['isAlarm'] as bool? ?? false,
       );
 }

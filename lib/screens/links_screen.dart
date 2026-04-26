@@ -165,7 +165,11 @@ class _LinkDismiss extends StatelessWidget {
             child: Padding(padding: const EdgeInsets.all(6), child: Icon(LucideIcons.pencil, size: 15, color: theme.muted)),
           ),
           GestureDetector(
-            onTap: onDelete, behavior: HitTestBehavior.opaque,
+            onTap: () async {
+              final ok = await confirmDelete(context, title: 'Delete link?', message: link.title);
+              if (ok) onDelete();
+            },
+            behavior: HitTestBehavior.opaque,
             child: Padding(padding: const EdgeInsets.all(6), child: Icon(LucideIcons.trash2, size: 15, color: theme.danger)),
           ),
           const SizedBox(width: 2),

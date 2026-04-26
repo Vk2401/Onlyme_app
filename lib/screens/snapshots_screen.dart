@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
 import '../models/snapshot.dart';
@@ -18,7 +21,15 @@ class SnapshotsScreen extends StatefulWidget {
 
 class _SnapshotsScreenState extends State<SnapshotsScreen> {
   String cat = 'hair';
-  Snapshot? open;
+  int? openIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AppState>().pruneDeletedSnapshotImages();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +46,7 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
             theme: theme,
             greeting: const Greeting(sub: 'Visual journal', title: 'Snapshots'),
             right: [
-              HeaderBtn(theme: theme, icon: LucideIcons.camera, onTap: () => _openAddSheet(context, theme)),
+              HeaderBtn(theme: theme, icon: LucideIcons.camera, onTap: () => _openAddSheet(context)),
             ],
           ),
           Padding(
@@ -56,7 +67,7 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
             child: GestureDetector(
-              onTap: () => _openAddSheet(context, theme),
+              onTap: () => _openAddSheet(context),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
@@ -84,10 +95,10 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
                   const SizedBox(height: 12),
                   Text('No $cat snapshots yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.ink)),
                   const SizedBox(height: 6),
-                  Text('Tap the camera button to add one', style: TextStyle(fontSize: 13, color: theme.muted)),
+                  Text('Choose from gallery or take a photo', style: TextStyle(fontSize: 13, color: theme.muted)),
                   const SizedBox(height: 18),
                   GestureDetector(
-                    onTap: () => _openAddSheet(context, theme),
+                    onTap: () => _openAddSheet(context),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       decoration: BoxDecoration(color: theme.accent, borderRadius: BorderRadius.circular(12)),
@@ -111,7 +122,7 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
                   final s = items[i];
                   return _SnapTile(
                     snap: s, theme: theme,
-                    onTap: () => setState(() => open = s),
+                    onTap: () => setState(() => openIndex = i),
                     onDelete: () async {
                       final ok = await confirmDelete(
                         context,
@@ -128,13 +139,13 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
         ],
       ),
 
-      if (open != null)
-        _SnapOverlay(
-          snap: open!,
+      if (openIndex != null && items.isNotEmpty)
+        _SnapCarousel(
+          snaps: items,
+          initialIndex: openIndex!.clamp(0, items.length - 1),
           cat: cat,
-          onClose: () => setState(() => open = null),
-          onDelete: () async {
-            final snap = open!;
+          onClose: () => setState(() => openIndex = null),
+          onDelete: (snap) async {
             final ok = await confirmDelete(
               context,
               title: 'Delete snapshot?',
@@ -142,13 +153,13 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
             );
             if (!ok || !context.mounted) return;
             context.read<AppState>().deleteSnapshot(cat, snap.id);
-            setState(() => open = null);
+            if (items.length <= 1) setState(() => openIndex = null);
           },
         ),
     ]);
   }
 
-  void _openAddSheet(BuildContext context, AppTheme theme) {
+  void _openAddSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -175,7 +186,7 @@ class _SnapTile extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: Stack(children: [
-          Positioned.fill(child: _photoBox(snap.hue, snap.date)),
+          Positioned.fill(child: _imageBox()),
           Positioned(
             top: 6, right: 6,
             child: GestureDetector(
@@ -193,13 +204,26 @@ class _SnapTile extends StatelessWidget {
             ),
           ),
         ])),
-        const SizedBox(height: 8),
-        Text(snap.note, style: TextStyle(fontSize: 13, color: theme.ink, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 6),
+        if (snap.note.isNotEmpty)
+          Text(snap.note, style: TextStyle(fontSize: 13, color: theme.ink, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(snap.date, style: TextStyle(fontSize: 11, color: theme.muted, fontWeight: FontWeight.w500)),
       ]),
     );
   }
 
-  Widget _photoBox(int hue, String date) {
+  Widget _imageBox() {
+    final path = snap.imagePath;
+    if (path != null && File(path).existsSync()) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Image.file(File(path), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+      );
+    }
+    return _gradientBox();
+  }
+
+  Widget _gradientBox() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: Container(
@@ -207,91 +231,203 @@ class _SnapTile extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft, end: Alignment.bottomRight,
             colors: [
-              HSLColor.fromAHSL(1, hue.toDouble(), 0.45, 0.55).toColor(),
-              HSLColor.fromAHSL(1, hue.toDouble(), 0.55, 0.30).toColor(),
+              HSLColor.fromAHSL(1, snap.hue.toDouble(), 0.45, 0.55).toColor(),
+              HSLColor.fromAHSL(1, snap.hue.toDouble(), 0.55, 0.30).toColor(),
             ],
           ),
         ),
-        child: Stack(children: [
-          Positioned.fill(child: Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(-0.4, -0.4), radius: 0.8,
-                colors: [Colors.white.withOpacity(0.2), Colors.transparent],
-                stops: const [0, 0.6],
-              ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: const Alignment(-0.4, -0.4), radius: 0.8,
+              colors: [Colors.white.withOpacity(0.2), Colors.transparent],
+              stops: const [0, 0.6],
             ),
-          )),
-          Positioned(top: 10, left: 10, child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: Colors.black.withOpacity(0.35), borderRadius: BorderRadius.circular(6)),
-            child: Text(date, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-          )),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Full-screen carousel overlay ──────────────────────────────────────────────
+
+class _SnapCarousel extends StatefulWidget {
+  final List<Snapshot> snaps;
+  final int initialIndex;
+  final String cat;
+  final VoidCallback onClose;
+  final void Function(Snapshot) onDelete;
+  const _SnapCarousel({
+    required this.snaps, required this.initialIndex, required this.cat,
+    required this.onClose, required this.onDelete,
+  });
+
+  @override
+  State<_SnapCarousel> createState() => _SnapCarouselState();
+}
+
+class _SnapCarouselState extends State<_SnapCarousel> {
+  late final PageController _ctrl;
+  late int _page;
+
+  @override
+  void initState() {
+    super.initState();
+    _page = widget.initialIndex;
+    _ctrl = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void didUpdateWidget(_SnapCarousel old) {
+    super.didUpdateWidget(old);
+    // If the snap at current page was deleted, snap to the nearest valid page
+    if (widget.snaps.length != old.snaps.length) {
+      final clamped = _page.clamp(0, widget.snaps.length - 1);
+      if (clamped != _page) {
+        setState(() => _page = clamped);
+        _ctrl.jumpToPage(clamped);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final snaps = widget.snaps;
+    if (snaps.isEmpty) return const SizedBox.shrink();
+    final snap = snaps[_page.clamp(0, snaps.length - 1)];
+
+    return Material(
+      color: Colors.black.withOpacity(0.92),
+      child: SafeArea(
+        child: Stack(children: [
+          // Swipeable pages
+          PageView.builder(
+            controller: _ctrl,
+            itemCount: snaps.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (_, i) => _SnapPage(snap: snaps[i]),
+          ),
+
+          // Top bar: close + counter
+          Positioned(
+            top: 12, left: 16, right: 16,
+            child: Row(children: [
+              GestureDetector(
+                onTap: widget.onClose,
+                child: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.15)),
+                  child: const Icon(LucideIcons.x, color: Colors.white, size: 18),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_page + 1} / ${snaps.length}',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ]),
+          ),
+
+          // Bottom bar: date + note + delete
+          Positioned(
+            bottom: 24, left: 20, right: 20,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                if (snap.note.isNotEmpty)
+                  Text(snap.note,
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text(snap.date.toUpperCase(),
+                    style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.65), letterSpacing: 1.5, fontWeight: FontWeight.w500)),
+              ])),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => widget.onDelete(snap),
+                child: Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.red.withOpacity(0.75)),
+                  child: const Icon(LucideIcons.trash2, color: Colors.white, size: 17),
+                ),
+              ),
+            ]),
+          ),
+
+          // Dot indicators (shown only when > 1 snap)
+          if (snaps.length > 1)
+            Positioned(
+              bottom: 80, left: 0, right: 0,
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (var i = 0; i < snaps.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 5),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: i == _page ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i == _page ? Colors.white : Colors.white.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ],
+              ]),
+            ),
         ]),
       ),
     );
   }
 }
 
-// ── Full-screen overlay ───────────────────────────────────────────────────────
-
-class _SnapOverlay extends StatelessWidget {
+class _SnapPage extends StatelessWidget {
   final Snapshot snap;
-  final String cat;
-  final VoidCallback onClose;
-  final VoidCallback onDelete;
-  const _SnapOverlay({required this.snap, required this.cat, required this.onClose, required this.onDelete});
+  const _SnapPage({required this.snap});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      Positioned.fill(child: GestureDetector(
-        onTap: onClose,
-        child: Container(color: Colors.black.withOpacity(0.85)),
-      )),
-      Center(child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          AspectRatio(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 70, 20, 140),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: AspectRatio(
             aspectRatio: 3 / 4,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                decoration: BoxDecoration(gradient: LinearGradient(
-                  begin: Alignment.topLeft, end: Alignment.bottomRight,
-                  colors: [
-                    HSLColor.fromAHSL(1, snap.hue.toDouble(), 0.4, 0.6).toColor(),
-                    HSLColor.fromAHSL(1, snap.hue.toDouble(), 0.5, 0.3).toColor(),
-                  ],
-                )),
-                child: Stack(children: [
-                  Positioned(top: 14, right: 14, child: GestureDetector(
-                    onTap: onClose,
-                    child: Container(
-                      width: 34, height: 34,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withOpacity(0.4)),
-                      child: const Icon(LucideIcons.x, color: Colors.white, size: 16),
-                    ),
-                  )),
-                  Positioned(bottom: 14, right: 14, child: GestureDetector(
-                    onTap: onDelete,
-                    child: Container(
-                      width: 34, height: 34,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.red.withOpacity(0.7)),
-                      child: const Icon(LucideIcons.trash2, color: Colors.white, size: 16),
-                    ),
-                  )),
-                ]),
-              ),
-            ),
+            child: _imageWidget(),
           ),
-          const SizedBox(height: 16),
-          Text(snap.date.toUpperCase(), style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.7), letterSpacing: 1.5)),
-          const SizedBox(height: 4),
-          Text(snap.note, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
-        ]),
-      )),
-    ]);
+        ),
+      ),
+    );
+  }
+
+  Widget _imageWidget() {
+    final path = snap.imagePath;
+    if (path != null && File(path).existsSync()) {
+      return Image.file(File(path), fit: BoxFit.cover);
+    }
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [
+            HSLColor.fromAHSL(1, snap.hue.toDouble(), 0.4, 0.6).toColor(),
+            HSLColor.fromAHSL(1, snap.hue.toDouble(), 0.5, 0.3).toColor(),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -307,12 +443,43 @@ class _AddSnapshotSheet extends StatefulWidget {
 
 class _AddSnapshotSheetState extends State<_AddSnapshotSheet> {
   final _note = TextEditingController();
-  double _hue = 120;
+  XFile? _picked;
+  bool _saving = false;
 
   @override
   void dispose() {
     _note.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final img = await picker.pickImage(source: source, imageQuality: 85);
+      if (img != null && mounted) setState(() => _picked = img);
+    } catch (_) {}
+  }
+
+  Future<void> _save(BuildContext context) async {
+    if (_picked == null && _note.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    final state = context.read<AppState>();
+    final nav = Navigator.of(context);
+    String? internalPath;
+    if (_picked != null) {
+      try {
+        final dir = await getApplicationDocumentsDirectory();
+        final snapDir = Directory('${dir.path}/snapshots');
+        if (!await snapDir.exists()) await snapDir.create(recursive: true);
+        final fileName = 'snap_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final dest = File('${snapDir.path}/$fileName');
+        await File(_picked!.path).copy(dest.path);
+        internalPath = dest.path;
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    state.addSnapshot(widget.cat, note: _note.text.trim(), hue: 120, imagePath: internalPath);
+    nav.pop();
   }
 
   @override
@@ -331,41 +498,65 @@ class _AddSnapshotSheetState extends State<_AddSnapshotSheet> {
           Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 18),
           Text('Add ${widget.cat} snapshot', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
-          // Color preview
-          Center(child: Container(
-            width: double.infinity, height: 80,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-                colors: [
-                  HSLColor.fromAHSL(1, _hue, 0.45, 0.55).toColor(),
-                  HSLColor.fromAHSL(1, _hue, 0.55, 0.30).toColor(),
-                ],
+          // Image preview or picker buttons
+          if (_picked != null)
+            Stack(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.file(
+                  File(_picked!.path),
+                  height: 200, width: double.infinity, fit: BoxFit.cover,
+                ),
               ),
-            ),
-          )),
-          const SizedBox(height: 12),
+              Positioned(top: 8, right: 8, child: GestureDetector(
+                onTap: () => setState(() => _picked = null),
+                child: Container(
+                  width: 30, height: 30,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withOpacity(0.5)),
+                  child: const Icon(LucideIcons.x, color: Colors.white, size: 14),
+                ),
+              )),
+            ])
+          else
+            Row(children: [
+              Expanded(child: GestureDetector(
+                onTap: () => _pickImage(ImageSource.gallery),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  decoration: BoxDecoration(
+                    color: theme.bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.rule),
+                  ),
+                  child: Column(children: [
+                    Icon(LucideIcons.image, color: theme.accent, size: 22),
+                    const SizedBox(height: 6),
+                    Text('Gallery', style: TextStyle(fontSize: 13, color: theme.ink, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: GestureDetector(
+                onTap: () => _pickImage(ImageSource.camera),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  decoration: BoxDecoration(
+                    color: theme.bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.rule),
+                  ),
+                  child: Column(children: [
+                    Icon(LucideIcons.camera, color: theme.accent, size: 22),
+                    const SizedBox(height: 6),
+                    Text('Camera', style: TextStyle(fontSize: 13, color: theme.ink, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              )),
+            ]),
 
-          // Hue slider
-          Text('Color tone', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.muted, letterSpacing: 0.5)),
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 6,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-            ),
-            child: Slider(
-              value: _hue,
-              min: 0, max: 359,
-              activeColor: HSLColor.fromAHSL(1, _hue, 0.6, 0.5).toColor(),
-              inactiveColor: theme.surface2,
-              onChanged: (v) => setState(() => _hue = v),
-            ),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
 
           // Note field
           Container(
@@ -373,11 +564,10 @@ class _AddSnapshotSheetState extends State<_AddSnapshotSheet> {
             decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12)),
             child: TextField(
               controller: _note,
-              autofocus: true,
               style: TextStyle(fontSize: 15, color: theme.ink, fontWeight: FontWeight.w500),
               decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Note (e.g. Fresh cut, 78.2 kg)',
+                hintText: 'Caption (optional)',
                 hintStyle: TextStyle(color: theme.muted),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -387,25 +577,20 @@ class _AddSnapshotSheetState extends State<_AddSnapshotSheet> {
           const SizedBox(height: 22),
 
           GestureDetector(
-            onTap: () {
-              if (_note.text.trim().isEmpty) return;
-              context.read<AppState>().addSnapshot(
-                widget.cat,
-                note: _note.text.trim(),
-                hue: _hue.round(),
-              );
-              Navigator.of(context).pop();
-            },
+            onTap: _saving ? null : () => _save(context),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: theme.accent,
+                color: _saving ? theme.muted : theme.accent,
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: theme.glow, blurRadius: 28, offset: const Offset(0, 8))],
+                boxShadow: [if (!_saving) BoxShadow(color: theme.glow, blurRadius: 28, offset: const Offset(0, 8))],
               ),
               alignment: Alignment.center,
-              child: const Text('Add snapshot', style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w700)),
+              child: Text(
+                _saving ? 'Saving…' : 'Add snapshot',
+                style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ]),

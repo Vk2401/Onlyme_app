@@ -339,7 +339,10 @@ class _DebtCard extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: onDelete,
+                onTap: () async {
+                  final ok = await confirmDelete(context, title: 'Delete debt?', message: debt.person);
+                  if (ok) onDelete();
+                },
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),

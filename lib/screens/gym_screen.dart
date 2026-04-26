@@ -100,7 +100,7 @@ class _GymScreenState extends State<GymScreen> {
 
         const SizedBox(height: 18),
 
-        // Day header + completion
+        // Day header + completion + rest toggle
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
@@ -120,19 +120,44 @@ class _GymScreenState extends State<GymScreen> {
                   ]),
                 ]),
               ),
-              if (day.exercises.isNotEmpty)
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text('${(pct * 100).round()}%',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: theme.accent, letterSpacing: -0.5)),
-                  Text('COMPLETE', style: TextStyle(fontSize: 10, color: theme.muted, fontWeight: FontWeight.w500)),
-                ]),
+              Row(children: [
+                // Rest day toggle chip
+                GestureDetector(
+                  onTap: () => state.toggleDayRest(day.id),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: day.isRest ? theme.muted.withOpacity(0.12) : theme.accent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: day.isRest ? theme.rule : theme.accent.withOpacity(0.35)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(day.isRest ? LucideIcons.moon : LucideIcons.dumbbell,
+                          size: 13, color: day.isRest ? theme.muted : theme.accent),
+                      const SizedBox(width: 4),
+                      Text(day.isRest ? 'Rest' : 'Train',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                              color: day.isRest ? theme.muted : theme.accent)),
+                    ]),
+                  ),
+                ),
+                if (!day.isRest && day.exercises.isNotEmpty) ...[
+                  const SizedBox(width: 10),
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text('${(pct * 100).round()}%',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.accent, letterSpacing: -0.5)),
+                    Text('DONE', style: TextStyle(fontSize: 10, color: theme.muted, fontWeight: FontWeight.w500)),
+                  ]),
+                ],
+              ]),
             ],
           ),
         ),
         const SizedBox(height: 16),
 
-        // Exercises
-        if (day.label.toLowerCase() == 'rest' && day.exercises.isEmpty)
+        // Exercises or rest day view
+        if (day.isRest && day.exercises.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: AppCard(theme: theme, pad: 30, child: Column(children: [
@@ -141,6 +166,20 @@ class _GymScreenState extends State<GymScreen> {
               Text('Rest day', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.ink)),
               const SizedBox(height: 4),
               Text('Recovery matters. Stretch & sleep well.', style: TextStyle(fontSize: 13, color: theme.muted)),
+              const SizedBox(height: 14),
+              GestureDetector(
+                onTap: () => state.toggleDayRest(day.id),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: theme.accent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: theme.accent.withOpacity(0.3)),
+                  ),
+                  child: Text('Switch to training day',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.accent)),
+                ),
+              ),
             ])),
           )
         else ...[
@@ -530,7 +569,11 @@ class _ExerciseRow extends StatelessWidget {
           child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.pencil, size: 14, color: theme.muted)),
         ),
         GestureDetector(
-          onTap: onDelete,
+          onTap: () async {
+            final ok = await confirmDelete(context,
+                title: 'Delete exercise?', message: '${ex.name} · ${ex.sets}×${ex.reps}');
+            if (ok) onDelete();
+          },
           behavior: HitTestBehavior.opaque,
           child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.trash2, size: 14, color: theme.danger)),
         ),
