@@ -81,9 +81,6 @@ class MoreScreen extends StatelessWidget {
         + state.vault.length;
     final since = DateTime.fromMillisecondsSinceEpoch(profile.createdAt);
     final displayName = (profile.name == null || profile.name!.isEmpty) ? 'Only me' : profile.name!;
-    final initial = (profile.name != null && profile.name!.isNotEmpty)
-        ? profile.name!.trim().substring(0, 1).toUpperCase()
-        : 'M';
 
     final totalExpenses = state.expenses.fold<int>(0, (s, e) => s + e.amount);
     final expensesSub = state.expenses.isEmpty
@@ -124,14 +121,13 @@ class MoreScreen extends StatelessWidget {
           child: AppCard(theme: theme, pad: 16,
             onTap: () => state.setScreen('profile'),
             child: Row(children: [
-              Container(
-                width: 56, height: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [theme.accent, theme.accent2]),
-                  borderRadius: BorderRadius.circular(18),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 56, height: 56,
+                  fit: BoxFit.contain,
                 ),
-                alignment: Alignment.center,
-                child: Text(initial, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
               ),
               const SizedBox(width: 14),
               Expanded(child: Column(
@@ -235,7 +231,12 @@ class MoreScreen extends StatelessWidget {
         ),
 
         const SizedBox(height: 28),
-        Center(child: Text('Only me · v1.0 · made with ♡', style: TextStyle(fontSize: 11, color: theme.muted))),
+        Column(children: [
+          Image.asset('assets/images/logo.png', height: 48, fit: BoxFit.contain),
+          const SizedBox(height: 6),
+          Text('v1.0 · All-in-one. Private. Only yours.',
+              style: TextStyle(fontSize: 11, color: theme.muted)),
+        ]),
       ],
     );
   }

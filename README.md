@@ -55,14 +55,13 @@ Open **More → Backup → Export data** to hand the full JSON payload to the na
 
 ## App icon
 
-The icon is rendered from Dart source (`tool/render_icon.dart`) and propagated to every iOS / Android size by `flutter_launcher_icons`. To change the art, edit the Dart, then run:
+The launcher icon is a PNG asset (`assets/icon/app_icon.png` — opaque background, `assets/icon/app_icon_fg.png` — transparent foreground for Android adaptive icons). To replace the icon, swap those two PNGs, then run:
 
 ```bash
-flutter test tool/render_icon.dart
 flutter pub run flutter_launcher_icons
 ```
 
-Details: [`docs/icon-pipeline.md`](docs/icon-pipeline.md).
+This propagates the master PNG to every iOS and Android size. Details: [`docs/icon-pipeline.md`](docs/icon-pipeline.md).
 
 ## For contributors
 
