@@ -43,6 +43,8 @@ class AppIcons {
       case 'bookOpen':     return LucideIcons.bookOpen;
       case 'refresh':      return LucideIcons.refreshCw;
       case 'cloud':        return LucideIcons.cloud;
+      case 'shield':       return LucideIcons.shield;
+      case 'fileText':     return LucideIcons.fileText;
       default:             return LucideIcons.circle;
     }
   }

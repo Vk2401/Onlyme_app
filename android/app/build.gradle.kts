@@ -41,6 +41,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 is enabled by the Flutter Gradle plugin in release mode.
+            // Our proguard-rules.pro adds the Gson/TypeToken keep rules that
+            // prevent the "Missing type parameter" crash in flutter_local_notifications.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

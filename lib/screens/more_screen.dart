@@ -211,6 +211,29 @@ class MoreScreen extends StatelessWidget {
           ])),
         ),
 
+        const SizedBox(height: 22),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+          child: Text('LEGAL', style: TextStyle(
+            fontSize: 12, fontWeight: FontWeight.w700, color: theme.muted, letterSpacing: 1,
+          )),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: AppCard(theme: theme, pad: 0, child: Column(children: [
+            _MoreRow(
+              item: _Item('privacy_policy', 'Privacy Policy', 'How your data is stored and protected', 'shield', const Color(0xFF60A5FA)),
+              hasTop: false,
+              onTap: () => state.setScreen('privacy_policy'),
+            ),
+            _MoreRow(
+              item: _Item('terms', 'Terms & Conditions', 'License and usage terms', 'fileText', const Color(0xFF94A3B8)),
+              hasTop: true,
+              onTap: () => state.setScreen('terms'),
+            ),
+          ])),
+        ),
+
         const SizedBox(height: 28),
         Center(child: Text('Only me · v1.0 · made with ♡', style: TextStyle(fontSize: 11, color: theme.muted))),
       ],

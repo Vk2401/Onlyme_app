@@ -17,6 +17,7 @@ import 'screens/notes_screen.dart';
 import 'screens/links_screen.dart';
 import 'screens/vault_screen.dart';
 import 'screens/expenses_screen.dart';
+import 'screens/legal_screen.dart';
 import 'screens/placeholder_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/tweaks_sheet.dart';
@@ -114,6 +115,12 @@ class _AppShellState extends State<AppShell> {
       case 'expenses':
         content = const ExpensesScreen();
         break;
+      case 'privacy_policy':
+        content = const PrivacyPolicyScreen();
+        break;
+      case 'terms':
+        content = const TermsScreen();
+        break;
       default:
         content = PlaceholderScreen(label: _placeholderLabel(state.screen));
     }
@@ -126,6 +133,10 @@ class _AppShellState extends State<AppShell> {
         if (didPop) return;
         if (showTweaks) { setState(() => showTweaks = false); return; }
         if (addOpen) { setState(() => addOpen = false); return; }
+        if (state.screen == 'privacy_policy' || state.screen == 'terms') {
+          state.setScreen('more');
+          return;
+        }
         if (state.screen != 'home') { state.setScreen('home'); return; }
         final exit = await confirmDelete(
           context,
