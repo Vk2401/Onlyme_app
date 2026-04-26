@@ -19,7 +19,7 @@ Only Me is a private, local-only personal productivity and tracking application 
 
 ## 3. License to use
 
-Webronic grants you a personal, non-exclusive, non-transferable, revocable license to use the app on your Android device for personal, non-commercial purposes in accordance with these Terms.
+The Only Me app is developed and owned by Vip Vasanth, an independent developer. You are granted a personal, non-exclusive, non-transferable, revocable license to use the app on your Android device for personal, non-commercial purposes in accordance with these Terms.
 
 You may not:
 
@@ -39,19 +39,21 @@ All data you enter into the app is stored exclusively on your device. You are so
 - The security of exported backup files.
 - The security of your device.
 
-We are not responsible for any loss of data resulting from device failure, accidental deletion, uninstallation, or any other cause.
+The developer is not responsible for any loss of data resulting from device failure, accidental deletion, uninstallation, or any other cause.
 
 ---
 
 ## 5. Vault / password manager
 
-The app includes a password vault feature. **Vault entries are stored as plain text on your device.** They are not encrypted. We strongly recommend:
+The app includes a password vault feature. **Vault passwords are encrypted on the device before being stored** — they are never written or exported as plain text. The encryption is applied locally using a key embedded in the app.
 
-- Using a device screen lock.
-- Not storing credentials for high-security accounts (banking, government, etc.) in the vault.
-- Keeping exported backup files in a secure location.
+Recommendations:
 
-Use of the vault feature is at your own risk. We accept no liability for any loss or compromise of credentials stored in the app.
+- Use a device screen lock to protect physical access.
+- Keep exported backup files in a secure, private location.
+- The vault is intended for personal convenience; exercise discretion about what credentials you store in any mobile app.
+
+Use of the vault feature is at your own risk. The developer accepts no liability for any loss or compromise of credentials stored in the app.
 
 ---
 
@@ -63,7 +65,7 @@ The app can schedule local OS notifications and alarms. The reliability of these
 - Whether you have granted the required permissions (see [Privacy Policy](privacy-policy.md)).
 - Your device manufacturer's battery optimisation policies.
 
-We do not guarantee that every scheduled notification will fire at the exact time requested. We are not liable for any consequences of a missed notification or alarm.
+The developer does not guarantee that every scheduled notification will fire at the exact time requested and is not liable for any consequences of a missed notification or alarm.
 
 ---
 
@@ -71,7 +73,7 @@ We do not guarantee that every scheduled notification will fire at the exact tim
 
 THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
 
-WE DO NOT WARRANT THAT:
+THE DEVELOPER DOES NOT WARRANT THAT:
 - THE APP WILL MEET YOUR REQUIREMENTS.
 - THE APP WILL BE UNINTERRUPTED, TIMELY, SECURE, OR ERROR-FREE.
 - ANY ERRORS WILL BE CORRECTED.
@@ -80,13 +82,13 @@ WE DO NOT WARRANT THAT:
 
 ## 8. Limitation of liability
 
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, WEBRONIC SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF DATA, LOSS OF PROFITS, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE APP, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE DEVELOPER OF ONLY ME SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF DATA, LOSS OF PROFITS, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE APP, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 ---
 
 ## 9. Intellectual property
 
-The app, including its design, icons, graphics, and code, is the property of Webronic and is protected by copyright and other applicable intellectual property laws. The "Only Me" name and branding are proprietary to Webronic.
+The Only Me app, including its design, icons, graphics, and code, is the property of Vip Vasanth and is protected by copyright and other applicable intellectual property laws. The "Only Me" name and branding are proprietary to the developer.
 
 Open-source software libraries used by the app are subject to their respective licenses.
 
@@ -94,7 +96,7 @@ Open-source software libraries used by the app are subject to their respective l
 
 ## 10. Modifications to the app and Terms
 
-We reserve the right to:
+The developer reserves the right to:
 
 - Modify or discontinue the app (or any feature thereof) at any time.
 - Update these Terms. Material changes will be communicated through app updates. The "Last updated" date will be revised. Continued use after an update constitutes acceptance.
@@ -117,7 +119,7 @@ These Terms shall be governed by and construed in accordance with the laws of In
 
 If you have questions about these Terms, please contact:
 
-**Webronic**
+**Vip Vasanth** (Independent Developer — Only Me app)
 Email: vipvasanth433@gmail.com
 
 ---

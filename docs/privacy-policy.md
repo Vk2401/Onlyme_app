@@ -7,13 +7,13 @@
 
 ## 1. Introduction
 
-Only Me ("the app", "we", "our") is a personal tracker application developed by Webronic ("developer", "I"). This Privacy Policy explains what data the app collects, how it is stored, and your rights as a user.
+Only Me ("the app") is a personal tracker application developed by Vip Vasanth, an independent developer. This Privacy Policy explains what data the app stores, how it is stored, and your rights as a user.
 
-**Short version:** Only Me stores all your data locally on your device. We do not collect, transmit, or share any personal information with anyone.
+**Short version:** Only Me stores all your data locally on your device. No data is ever collected, transmitted, or shared with anyone.
 
 ---
 
-## 2. Information the app collects
+## 2. Information the app stores
 
 Only Me stores the following information **locally on your device only**:
 
@@ -22,19 +22,19 @@ Only Me stores the following information **locally on your device only**:
 | Tasks, debts, events, gym plan, weight log | Android SharedPreferences | Core app functionality |
 | Snapshots / journal images | App internal documents directory | Display in Snapshots screen |
 | Notes, saved links | Android SharedPreferences | Core app functionality |
-| Vault entries (titles, usernames, passwords, URLs) | Android SharedPreferences | Password manager feature |
+| Vault entries (titles, usernames, encrypted passwords, URLs) | Android SharedPreferences | Password manager feature |
 | Expenses | Android SharedPreferences | Expense tracking |
 | Profile (name, date of birth, phone number, currency) | Android SharedPreferences | Personalisation |
 | Custom alarm sound file | App internal documents directory | Alarm notifications |
 | App preferences (theme, accent colour, last screen) | Android SharedPreferences | UI state |
 
-### What we do NOT collect
+### What the app does NOT collect
 
-- We do **not** collect any analytics or usage statistics.
-- We do **not** use advertising SDKs or tracking libraries.
-- We do **not** transmit any data to any server, cloud service, or third party.
-- We do **not** require an account or any form of registration.
-- We do **not** access your contacts, call logs, SMS, or location.
+- No analytics or usage statistics.
+- No advertising SDKs or tracking libraries.
+- No data is transmitted to any server, cloud service, or third party.
+- No account or any form of registration is required.
+- No access to your contacts, call logs, SMS, or location.
 
 ---
 
@@ -62,15 +62,16 @@ All data is stored using Android's SharedPreferences and the app's internal docu
 
 - **Sandboxed** — inaccessible to other apps under normal conditions.
 - **Device-local** — never transmitted off the device.
-- **Not encrypted at rest** — data in SharedPreferences and the documents directory is plain text / plain files. Users should be aware that on a rooted device or if a full device backup is performed, data (including vault entries) may be readable.
+- **Password-encrypted** — vault passwords are encrypted on the device before being stored. They are never stored or exported as plain text.
+- Other app data (tasks, notes, profile, etc.) is stored in plain JSON within the sandboxed storage area.
 
-We recommend setting a device screen lock and keeping your device's operating system up to date.
+A device screen lock is recommended to protect your data from physical access.
 
 ---
 
 ## 5. Backup files
 
-The app's "Export data" feature creates a JSON file containing all your data, including vault entries. This file is:
+The app's "Export data" feature creates a JSON file containing all your data. Vault passwords are included in their **encrypted form** — they are never written as plain text in the backup file. The file is:
 
 - Generated locally on your device.
 - Shared via your device's native share sheet to a destination you choose (Google Drive, email, etc.).
@@ -117,7 +118,7 @@ There is no data stored on any server to request deletion of.
 
 ## 9. Changes to this policy
 
-If we make material changes to this Privacy Policy, the updated policy will be included in the next app update. The "Last updated" date at the top of this document will be revised. Continued use of the app after an update constitutes acceptance of the revised policy.
+If material changes are made to this Privacy Policy, the updated policy will be included in the next app update. The "Last updated" date at the top of this document will be revised. Continued use of the app after an update constitutes acceptance of the revised policy.
 
 ---
 
@@ -125,7 +126,7 @@ If we make material changes to this Privacy Policy, the updated policy will be i
 
 If you have questions about this Privacy Policy, please contact:
 
-**Webronic**
+**Vip Vasanth** (Independent Developer — Only Me app)
 Email: vipvasanth433@gmail.com
 
 ---

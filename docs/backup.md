@@ -92,4 +92,4 @@ Android 13+ and iOS sandboxing prevent writes outside the app container. `getTem
 
 ## Security
 
-The vault is stored **unencrypted** in the backup because it's unencrypted on disk. If you encrypt the on-disk vault in the future, also encrypt it in the backup.
+Vault **passwords** are stored in their encrypted form (`enc:<base64url>`) both on disk and in the backup — they are never written as plain text. Other vault fields (title, username, url, note) are stored unencrypted. If you upgrade the encryption scheme in the future, bump `_kPayloadVersion` and migrate the password fields in `importAll`.

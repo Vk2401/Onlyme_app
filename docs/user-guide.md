@@ -163,7 +163,7 @@ Tap a vault entry to open the detail view, where you can:
 - Copy username or password to the clipboard.
 - Edit or delete the entry.
 
-> **Note:** Vault entries are stored as plain text on your device. They are not encrypted. Do not use this to store credentials for high-security accounts.
+> **Note:** Vault passwords are encrypted on the device before being stored — they are never saved as plain text. Other fields (title, username, URL, note) are stored unencrypted in the app's sandboxed storage.
 
 ---
 
@@ -252,7 +252,7 @@ Check **More → Notifications**. All three permission rows should show "Granted
 Yes. All features except reminders and image capture work without any permissions.
 
 **Is my vault data encrypted?**
-No. Vault entries are stored as plain text. They never leave your device, but if someone has physical access to your unlocked phone or a rooted device they could read them.
+Yes — passwords are encrypted on the device before being stored and are never written as plain text. Other vault fields (title, username, URL, note) are stored unencrypted within the app's sandboxed storage. A device screen lock is recommended to protect against physical access.
 
 **How do I move to a new phone?**
 Export your data from **More → Backup → Export data**, transfer the `.json` file to the new phone, install Only Me, then restore via **More → Backup → Import data**.
