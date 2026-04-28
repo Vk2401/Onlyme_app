@@ -46,3 +46,8 @@ app.*.map.json
 
 # Flutter build output (large intermediates). Keep release APKs under /releases/ only.
 /build/
+
+# Keystore and signing secrets — never commit these
+android/key.properties
+*.jks
+*.keystore
