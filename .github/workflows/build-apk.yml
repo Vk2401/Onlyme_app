@@ -36,22 +36,20 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
-      # ── Signing setup (uses GitHub Secrets) ────────────────────────────────
+      # ── Signing setup ──────────────────────────────────────────────────────
       - name: Decode keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode \
             > android/vasanthkumar24-release.jks
 
       - name: Write key.properties
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: |
-          cat > android/key.properties <<EOF
+          cat > android/key.properties << 'PROPS'
           storePassword=${{ secrets.STORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
           storeFile=../vasanthkumar24-release.jks
-          EOF
+          PROPS
 
       # ── Build APK ──────────────────────────────────────────────────────────
       - name: Build release APK
@@ -74,11 +72,9 @@ jobs:
 
       # ── Build AAB (Play Store) ─────────────────────────────────────────────
       - name: Build release AAB
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: flutter build appbundle --release
 
       - name: Copy AAB to releases/
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: |
           VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
           cp build/app/outputs/bundle/release/app-release.aab \
@@ -86,7 +82,6 @@ jobs:
           echo "AAB: $(du -sh releases/onlyme-${VERSION}.aab)"
 
       - name: Upload AAB artifact
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: com.vasanthkumar24.onlyme-aab-${{ github.run_number }}
