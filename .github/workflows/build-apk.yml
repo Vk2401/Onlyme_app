@@ -2,8 +2,13 @@ name: Build Release APK + AAB
 
 on:
   push:
-    branches: [ main, master, 'claude/**' ]
+    branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name shown to users (e.g. 1.2.0)'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -13,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -26,6 +33,40 @@ jobs:
           flutter-version: '3.24.5'
           channel: stable
           cache: true
+
+      # ── Auto version bump ──────────────────────────────────────────────────
+      - name: Bump version in pubspec.yaml
+        id: version
+        run: |
+          # Read current version name
+          CURRENT=$(grep "^version:" pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+
+          # Use input version name if provided, else keep current
+          if [ -n "${{ github.event.inputs.version_name }}" ]; then
+            VNAME="${{ github.event.inputs.version_name }}"
+          else
+            VNAME="$CURRENT"
+          fi
+
+          # Version code = GitHub run number (always increases)
+          VCODE=${{ github.run_number }}
+
+          # Update pubspec.yaml
+          sed -i "s/^version:.*/version: ${VNAME}+${VCODE}/" pubspec.yaml
+
+          echo "version_name=$VNAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VCODE" >> $GITHUB_OUTPUT
+          echo "full_version=${VNAME}+${VCODE}" >> $GITHUB_OUTPUT
+          echo "✓ Version set to ${VNAME}+${VCODE}"
+
+      - name: Commit version bump
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml
+          git diff --staged --quiet || git commit \
+            -m "chore: bump version to ${{ steps.version.outputs.full_version }} [skip ci]"
+          git push
 
       - name: Get dependencies
         run: flutter pub get
@@ -44,7 +85,7 @@ jobs:
 
       - name: Write key.properties
         run: |
-          cat > android/key.properties << 'PROPS'
+          cat > android/key.properties << PROPS
           storePassword=${{ secrets.STORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
@@ -58,15 +99,15 @@ jobs:
       - name: Copy APK to releases/
         run: |
           mkdir -p releases
-          VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          V="${{ steps.version.outputs.full_version }}"
           cp build/app/outputs/apk/release/app-arm64-v8a-release.apk \
-             releases/onlyme-${VERSION}-arm64.apk
-          echo "APK: $(du -sh releases/onlyme-${VERSION}-arm64.apk)"
+             "releases/onlyme-v${V}-arm64.apk"
+          echo "APK: $(du -sh releases/onlyme-v${V}-arm64.apk)"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: com.vasanthkumar24.onlyme-apk-${{ github.run_number }}
+          name: com.vasanthkumar24.onlyme-v${{ steps.version.outputs.full_version }}-apk
           path: releases/*.apk
           retention-days: 30
 
@@ -76,14 +117,31 @@ jobs:
 
       - name: Copy AAB to releases/
         run: |
-          VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          V="${{ steps.version.outputs.full_version }}"
           cp build/app/outputs/bundle/release/app-release.aab \
-             releases/onlyme-${VERSION}.aab
-          echo "AAB: $(du -sh releases/onlyme-${VERSION}.aab)"
+             "releases/onlyme-v${V}.aab"
+          echo "AAB: $(du -sh releases/onlyme-v${V}.aab)"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: com.vasanthkumar24.onlyme-aab-${{ github.run_number }}
+          name: com.vasanthkumar24.onlyme-v${{ steps.version.outputs.full_version }}-aab
           path: releases/*.aab
           retention-days: 30
+
+      # ── GitHub Release ─────────────────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version_name }}
+          name: Only Me v${{ steps.version.outputs.version_name }}
+          body: |
+            ## Only Me v${{ steps.version.outputs.version_name }}
+            **Version code:** ${{ steps.version.outputs.version_code }}
+            **Package:** com.vasanthkumar24.onlyme
+
+            ### Install
+            - Download the APK below for direct install
+            - AAB is for Play Store upload only
+          files: releases/*
+          make_latest: true
