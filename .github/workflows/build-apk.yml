@@ -1,4 +1,4 @@
-name: Build Release APK
+name: Build Release APK + AAB
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build APK
+    name: Build — com.vasanthkumar24.onlyme
     runs-on: ubuntu-latest
 
     steps:
@@ -36,18 +36,59 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
+      # ── Signing setup (uses GitHub Secrets) ────────────────────────────────
+      - name: Decode keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode \
+            > android/vasanthkumar24-release.jks
+
+      - name: Write key.properties
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=../vasanthkumar24-release.jks
+          EOF
+
+      # ── Build APK ──────────────────────────────────────────────────────────
       - name: Build release APK
         run: flutter build apk --release --split-per-abi
 
       - name: Copy APK to releases/
         run: |
           mkdir -p releases
-          cp build/app/outputs/apk/release/app-arm64-v8a-release.apk releases/onlyme-v1.1.apk
-          echo "APK size: $(du -sh releases/onlyme-v1.1.apk)"
+          VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          cp build/app/outputs/apk/release/app-arm64-v8a-release.apk \
+             releases/onlyme-${VERSION}-arm64.apk
+          echo "APK: $(du -sh releases/onlyme-${VERSION}-arm64.apk)"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: onlyme-release-apk
-          path: releases/onlyme-v1.1.apk
+          name: com.vasanthkumar24.onlyme-apk-${{ github.run_number }}
+          path: releases/*.apk
+          retention-days: 30
+
+      # ── Build AAB (Play Store) ─────────────────────────────────────────────
+      - name: Build release AAB
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: flutter build appbundle --release
+
+      - name: Copy AAB to releases/
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          cp build/app/outputs/bundle/release/app-release.aab \
+             releases/onlyme-${VERSION}.aab
+          echo "AAB: $(du -sh releases/onlyme-${VERSION}.aab)"
+
+      - name: Upload AAB artifact
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: com.vasanthkumar24.onlyme-aab-${{ github.run_number }}
+          path: releases/*.aab
           retention-days: 30
