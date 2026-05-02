@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
 import '../models/event.dart';
+import '../services/notifications_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/header.dart';
 import '../widgets/primitives.dart';
@@ -517,7 +518,10 @@ class _EventSheetState extends State<_EventSheet> {
             _EventAlarmToggle(
               theme: theme,
               value: _isAlarm,
-              onChanged: (v) => setState(() => _isAlarm = v),
+              onChanged: (v) {
+                setState(() => _isAlarm = v);
+                if (v) _warnIfNoAlarmPermission();
+              },
             ),
           ],
           const SizedBox(height: 16),
@@ -590,6 +594,19 @@ class _EventSheetState extends State<_EventSheet> {
         ]),
       ),
     );
+  }
+
+  Future<void> _warnIfNoAlarmPermission() async {
+    final ok = await NotificationsService.instance.hasExactAlarmPermission();
+    if (ok || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      behavior: SnackBarBehavior.floating,
+      content: const Text('Grant "Alarms & reminders" permission so this alarm fires reliably'),
+      action: SnackBarAction(
+        label: 'Open settings',
+        onPressed: () => NotificationsService.instance.openExactAlarmSettings(),
+      ),
+    ));
   }
 
   void _submit() {
