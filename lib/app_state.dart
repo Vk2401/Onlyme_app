@@ -32,7 +32,7 @@ class AppState extends ChangeNotifier {
   late List<Expense> expenses;
 
   String screen = 'home';
-  AppTheme theme = AppTheme.build(dark: false, accentKey: AccentKey.mint);
+  AppTheme theme = AppTheme.build(dark: false, accentKey: AccentKey.violet);
   DateTime? lastSyncAt;
 
   AppState._(this.storage);
@@ -60,7 +60,7 @@ class AppState extends ChangeNotifier {
     final dk = s.readDark();
     final accent = AccentKey.values.firstWhere(
       (e) => e.name == ak,
-      orElse: () => AccentKey.mint,
+      orElse: () => AccentKey.violet,
     );
     state.theme = AppTheme.build(dark: dk ?? false, accentKey: accent);
 
@@ -338,11 +338,11 @@ class AppState extends ChangeNotifier {
   }
 
   // --- Gym CRUD ---
-  void addExercise(int dayId, {required String name, required int sets, required String reps, required String weight, String? imageUrl, String? tutorialLink}) {
+  void addExercise(int dayId, {required String name, required int sets, required String reps, required String weight, String? imagePath, String? tutorialLink}) {
     gym = gym.copyWith(
       days: gym.days.map((d) {
         if (d.id != dayId) return d;
-        return d.copyWith(exercises: [...d.exercises, Exercise(name: name, sets: sets, reps: reps, weight: weight, done: false, imageUrl: imageUrl, tutorialLink: tutorialLink)]);
+        return d.copyWith(exercises: [...d.exercises, Exercise(name: name, sets: sets, reps: reps, weight: weight, done: false, imagePath: imagePath, tutorialLink: tutorialLink)]);
       }).toList(),
     );
     storage.writeGym(gym);
@@ -378,6 +378,11 @@ class AppState extends ChangeNotifier {
   }
 
   void deleteExercise(int dayId, int exIndex) {
+    final day = gym.days.firstWhere((d) => d.id == dayId);
+    final ex = day.exercises[exIndex];
+    if (ex.imagePath != null) {
+      try { File(ex.imagePath!).deleteSync(); } catch (_) {}
+    }
     gym = gym.copyWith(
       days: gym.days.map((d) {
         if (d.id != dayId) return d;

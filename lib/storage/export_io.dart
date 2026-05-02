@@ -35,7 +35,24 @@ Future<String> exportAll(AppState state) async {
       'tasks': state.tasks.map((t) => t.toJson()).toList(),
       'debts': state.debts.map((d) => d.toJson()).toList(),
       'events': state.events.map((e) => e.toJson()).toList(),
-      'gym': state.gym.toJson(),
+      'gym': () {
+        final gymJson = Map<String, dynamic>.from(state.gym.toJson());
+        gymJson['days'] = (state.gym.days).map((day) {
+          final dayJson = Map<String, dynamic>.from(day.toJson());
+          dayJson['exercises'] = day.exercises.map((ex) {
+            final exJson = Map<String, dynamic>.from(ex.toJson());
+            if (ex.imagePath != null) {
+              try {
+                exJson['imageData'] = base64Encode(File(ex.imagePath!).readAsBytesSync());
+              } catch (_) {}
+              exJson.remove('imagePath');
+            }
+            return exJson;
+          }).toList();
+          return dayJson;
+        }).toList();
+        return gymJson;
+      }(),
       'snapshots': state.snapshots.map((k, v) => MapEntry(k, v.map((s) {
         final j = Map<String, dynamic>.from(s.toJson());
         if (s.imagePath != null) {
@@ -118,7 +135,37 @@ Future<ImportResult> importAll(AppState state, File f) async {
       );
     }
     if (data['gym'] is Map) {
-      await s.writeGym(GymPlan.fromJson((data['gym'] as Map).cast<String, dynamic>()));
+      final gymMap = Map<String, dynamic>.from((data['gym'] as Map).cast<String, dynamic>());
+      if (gymMap['days'] is List) {
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final exDir = Directory('${appDocDir.path}/exercises');
+        if (!await exDir.exists()) await exDir.create(recursive: true);
+        gymMap['days'] = await Future.wait(
+          (gymMap['days'] as List).map((dayRaw) async {
+            final dayMap = Map<String, dynamic>.from(dayRaw as Map);
+            if (dayMap['exercises'] is List) {
+              dayMap['exercises'] = await Future.wait(
+                (dayMap['exercises'] as List).map((exRaw) async {
+                  final exMap = Map<String, dynamic>.from(exRaw as Map);
+                  if (exMap['imageData'] is String) {
+                    try {
+                      final bytes = base64Decode(exMap['imageData'] as String);
+                      final fileName = 'ex_${DateTime.now().microsecondsSinceEpoch}.jpg';
+                      final imgFile = File('${exDir.path}/$fileName');
+                      await imgFile.writeAsBytes(bytes);
+                      exMap['imagePath'] = imgFile.path;
+                    } catch (_) {}
+                    exMap.remove('imageData');
+                  }
+                  return exMap;
+                }),
+              );
+            }
+            return dayMap;
+          }),
+        );
+      }
+      await s.writeGym(GymPlan.fromJson(gymMap));
     }
     if (data['snapshots'] is Map) {
       final rawMap = (data['snapshots'] as Map).cast<String, dynamic>();

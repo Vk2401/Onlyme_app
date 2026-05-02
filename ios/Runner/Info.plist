@@ -63,6 +63,8 @@
 	<string>Only Me uses the camera to capture snapshot photos for your visual journal.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Only Me reads photos from your library to add snapshots to your visual journal.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Only Me saves snapshot and exercise images to your photo library.</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

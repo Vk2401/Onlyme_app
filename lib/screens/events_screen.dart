@@ -438,8 +438,6 @@ class _EventSheet extends StatefulWidget {
 
 class _EventSheetState extends State<_EventSheet> {
   late final TextEditingController _title;
-  late final TextEditingController _date;
-  late final TextEditingController _days;
   late String _icon;
   late Color _color;
   DateTime? _scheduledAt;
@@ -450,8 +448,6 @@ class _EventSheetState extends State<_EventSheet> {
     super.initState();
     final e = widget.event;
     _title = TextEditingController(text: e?.title ?? '');
-    _date = TextEditingController(text: e?.date ?? '');
-    _days = TextEditingController(text: e?.daysAway.toString() ?? '');
     _icon = e?.icon ?? 'gift';
     _color = e?.color ?? _eventColors[0];
     _scheduledAt = e?.scheduledAt;
@@ -461,8 +457,6 @@ class _EventSheetState extends State<_EventSheet> {
   @override
   void dispose() {
     _title.dispose();
-    _date.dispose();
-    _days.dispose();
     super.dispose();
   }
 
@@ -489,27 +483,12 @@ class _EventSheetState extends State<_EventSheet> {
 
           _EField(theme: theme, hint: 'Event name', controller: _title, autofocus: !editing),
           const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: _EField(theme: theme, hint: 'Date (e.g. Nov 14)', controller: _date)),
-            const SizedBox(width: 10),
-            Expanded(child: _EField(theme: theme, hint: 'Days away', controller: _days, keyboardType: TextInputType.number)),
-          ]),
-          const SizedBox(height: 10),
 
           _EventReminderRow(
             theme: theme,
             value: _scheduledAt,
             onChange: (v) => setState(() {
               _scheduledAt = v;
-              if (v != null) {
-                final now = DateTime.now();
-                final dd = DateTime(v.year, v.month, v.day).difference(DateTime(now.year, now.month, now.day)).inDays;
-                _days.text = dd.toString();
-                if (_date.text.trim().isEmpty) {
-                  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                  _date.text = '${months[v.month - 1]} ${v.day}';
-                }
-              }
               if (v == null) _isAlarm = false;
             }),
           ),
@@ -612,11 +591,24 @@ class _EventSheetState extends State<_EventSheet> {
   void _submit() {
     if (_title.text.trim().isEmpty) return;
     final state = context.read<AppState>();
-    final daysAway = int.tryParse(_days.text.trim()) ?? 0;
+    final now = DateTime.now();
+    String dateStr = '';
+    int daysAway = 0;
+    if (_scheduledAt != null) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      dateStr = '${months[_scheduledAt!.month - 1]} ${_scheduledAt!.day}';
+      daysAway = DateTime(_scheduledAt!.year, _scheduledAt!.month, _scheduledAt!.day)
+          .difference(DateTime(now.year, now.month, now.day))
+          .inDays;
+    } else if (widget.event != null) {
+      // preserve existing date/daysAway when editing without a reminder
+      dateStr = widget.event!.date;
+      daysAway = widget.event!.daysAway;
+    }
     if (widget.event != null) {
       state.editEvent(widget.event!.copyWith(
         title: _title.text.trim(),
-        date: _date.text.trim().isEmpty ? '—' : _date.text.trim(),
+        date: dateStr.isEmpty ? '—' : dateStr,
         daysAway: daysAway,
         icon: _icon,
         color: _color,
@@ -627,7 +619,7 @@ class _EventSheetState extends State<_EventSheet> {
     } else {
       state.addEvent(
         title: _title.text.trim(),
-        date: _date.text.trim().isEmpty ? '—' : _date.text.trim(),
+        date: dateStr.isEmpty ? '—' : dateStr,
         daysAway: daysAway,
         icon: _icon,
         color: _color,

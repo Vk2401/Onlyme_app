@@ -260,7 +260,6 @@ class _TaskSheet extends StatefulWidget {
 
 class _TaskSheetState extends State<_TaskSheet> {
   late final TextEditingController _title;
-  late final TextEditingController _time;
   late final TextEditingController _cat;
   late String _icon;
   late Color _color;
@@ -272,7 +271,6 @@ class _TaskSheetState extends State<_TaskSheet> {
     super.initState();
     final t = widget.task;
     _title = TextEditingController(text: t?.title ?? '');
-    _time = TextEditingController(text: t?.time ?? '');
     _cat = TextEditingController(text: t?.cat ?? '');
     _icon = t?.icon ?? 'checkCircle';
     _color = t?.color ?? _colorPalette[0];
@@ -283,7 +281,6 @@ class _TaskSheetState extends State<_TaskSheet> {
   @override
   void dispose() {
     _title.dispose();
-    _time.dispose();
     _cat.dispose();
     super.dispose();
   }
@@ -317,12 +314,7 @@ class _TaskSheetState extends State<_TaskSheet> {
             _Field(theme: theme, hint: 'Task name', controller: _title, autofocus: !editing),
             const SizedBox(height: 10),
 
-            // Time + Category row
-            Row(children: [
-              Expanded(child: _Field(theme: theme, hint: 'Time (e.g. 07:30)', controller: _time)),
-              const SizedBox(width: 10),
-              Expanded(child: _Field(theme: theme, hint: 'Category', controller: _cat)),
-            ]),
+            _Field(theme: theme, hint: 'Category (optional)', controller: _cat),
             const SizedBox(height: 10),
 
             // Optional reminder (date + time picker)
@@ -331,9 +323,6 @@ class _TaskSheetState extends State<_TaskSheet> {
               value: _scheduledAt,
               onChange: (v) => setState(() {
                 _scheduledAt = v;
-                if (v != null && _time.text.trim().isEmpty) {
-                  _time.text = _formatClock(v);
-                }
                 if (v == null) _isAlarm = false;
               }),
             ),
@@ -445,7 +434,7 @@ class _TaskSheetState extends State<_TaskSheet> {
     if (widget.task != null) {
       state.editTask(widget.task!.copyWith(
         title: _title.text.trim(),
-        time: _time.text.trim(),
+        time: _scheduledAt != null ? _formatClock(_scheduledAt!) : (widget.task?.time ?? 'All day'),
         cat: _cat.text.trim(),
         icon: _icon,
         color: _color,
@@ -456,7 +445,7 @@ class _TaskSheetState extends State<_TaskSheet> {
     } else {
       state.addTask(
         title: _title.text.trim(),
-        time: _time.text.trim().isEmpty ? 'all day' : _time.text.trim(),
+        time: _scheduledAt != null ? _formatClock(_scheduledAt!) : 'All day',
         cat: _cat.text.trim().isEmpty ? 'Personal' : _cat.text.trim(),
         icon: _icon,
         color: _color,

@@ -242,7 +242,7 @@ class _ScreenSwitcher extends StatelessWidget {
   }
 }
 
-/// A combined slide + fade + soft scale transition tuned to feel iOS-native.
+/// Pure cross-fade between screens — clean and instant-feeling.
 class _IosSwitchTransition extends StatelessWidget {
   final Animation<double> primary;
   final Animation<double> secondary;
@@ -251,27 +251,11 @@ class _IosSwitchTransition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slideIn = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
-        .chain(CurveTween(curve: Curves.easeOutCubic)).animate(primary);
     final fadeIn = CurvedAnimation(parent: primary, curve: Curves.easeOut);
-    final scaleIn = Tween<double>(begin: 0.985, end: 1).chain(CurveTween(curve: Curves.easeOutCubic)).animate(primary);
-
-    final slideOut = Tween<Offset>(begin: Offset.zero, end: const Offset(0, -0.06))
-        .chain(CurveTween(curve: Curves.easeIn)).animate(secondary);
     final fadeOut = Tween<double>(begin: 1, end: 0).chain(CurveTween(curve: Curves.easeIn)).animate(secondary);
-
     return FadeTransition(
       opacity: fadeOut,
-      child: SlideTransition(
-        position: slideOut,
-        child: FadeTransition(
-          opacity: fadeIn,
-          child: SlideTransition(
-            position: slideIn,
-            child: ScaleTransition(scale: scaleIn, child: child),
-          ),
-        ),
-      ),
+      child: FadeTransition(opacity: fadeIn, child: child),
     );
   }
 }
