@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../app_state.dart';
@@ -394,8 +397,8 @@ class _GymScreenState extends State<GymScreen> {
     final setsCtrl = TextEditingController(text: ex?.sets.toString() ?? '');
     final repsCtrl = TextEditingController(text: ex?.reps ?? '');
     final weightCtrl = TextEditingController(text: ex?.weight ?? '');
-    final imageUrlCtrl = TextEditingController(text: ex?.imageUrl ?? '');
     final tutorialCtrl = TextEditingController(text: ex?.tutorialLink ?? '');
+    String? pickedImagePath = ex?.imagePath;
     final editing = ex != null;
 
     showModalBottomSheet<void>(
@@ -403,64 +406,134 @@ class _GymScreenState extends State<GymScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.5),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-        child: Container(
-          decoration: BoxDecoration(color: theme.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), border: Border.all(color: theme.rule)),
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 36),
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 18),
-              Text(editing ? 'Edit exercise' : 'Add exercise',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
-              const SizedBox(height: 16),
-              _GField(theme: theme, hint: 'Exercise name', controller: nameCtrl, autofocus: !editing),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: _GField(theme: theme, hint: 'Sets', controller: setsCtrl, keyboardType: TextInputType.number)),
-                const SizedBox(width: 10),
-                Expanded(child: _GField(theme: theme, hint: 'Reps (e.g. 8 or 12/leg)', controller: repsCtrl)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: theme.rule),
+            ),
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 36),
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 18),
+                Text(editing ? 'Edit exercise' : 'Add exercise',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
+                const SizedBox(height: 16),
+                _GField(theme: theme, hint: 'Exercise name', controller: nameCtrl, autofocus: !editing),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(child: _GField(theme: theme, hint: 'Sets', controller: setsCtrl, keyboardType: TextInputType.number)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _GField(theme: theme, hint: 'Reps (e.g. 8 or 12/leg)', controller: repsCtrl)),
+                ]),
+                const SizedBox(height: 10),
+                _GField(theme: theme, hint: 'Weight (e.g. 85 kg / bodyweight)', controller: weightCtrl),
+                const SizedBox(height: 14),
+
+                // Reference image picker
+                Text('Reference image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.muted, letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                if (pickedImagePath != null && File(pickedImagePath!).existsSync())
+                  Stack(children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(File(pickedImagePath!), height: 160, width: double.infinity, fit: BoxFit.cover),
+                    ),
+                    Positioned(top: 8, right: 8, child: GestureDetector(
+                      onTap: () => setSheetState(() => pickedImagePath = null),
+                      child: Container(
+                        width: 28, height: 28,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withOpacity(0.5)),
+                        child: const Icon(LucideIcons.x, color: Colors.white, size: 14),
+                      ),
+                    )),
+                  ])
+                else
+                  Row(children: [
+                    Expanded(child: GestureDetector(
+                      onTap: () async {
+                        final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+                        if (img == null) return;
+                        final dir = await getApplicationDocumentsDirectory();
+                        final exDir = Directory('${dir.path}/exercises');
+                        if (!await exDir.exists()) await exDir.create(recursive: true);
+                        final dest = File('${exDir.path}/ex_${DateTime.now().millisecondsSinceEpoch}.jpg');
+                        await File(img.path).copy(dest.path);
+                        setSheetState(() => pickedImagePath = dest.path);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.rule)),
+                        child: Column(children: [
+                          Icon(LucideIcons.image, color: theme.accent, size: 20),
+                          const SizedBox(height: 6),
+                          Text('Gallery', style: TextStyle(fontSize: 12, color: theme.ink, fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                    )),
+                    const SizedBox(width: 10),
+                    Expanded(child: GestureDetector(
+                      onTap: () async {
+                        final img = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 85);
+                        if (img == null) return;
+                        final dir = await getApplicationDocumentsDirectory();
+                        final exDir = Directory('${dir.path}/exercises');
+                        if (!await exDir.exists()) await exDir.create(recursive: true);
+                        final dest = File('${exDir.path}/ex_${DateTime.now().millisecondsSinceEpoch}.jpg');
+                        await File(img.path).copy(dest.path);
+                        setSheetState(() => pickedImagePath = dest.path);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.rule)),
+                        child: Column(children: [
+                          Icon(LucideIcons.camera, color: theme.accent, size: 20),
+                          const SizedBox(height: 6),
+                          Text('Camera', style: TextStyle(fontSize: 12, color: theme.ink, fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                    )),
+                  ]),
+
+                const SizedBox(height: 10),
+                _GField(theme: theme, hint: 'Tutorial link (YouTube / video URL)', controller: tutorialCtrl),
+                const SizedBox(height: 22),
+                GestureDetector(
+                  onTap: () {
+                    if (nameCtrl.text.trim().isEmpty) return;
+                    final sets = int.tryParse(setsCtrl.text.trim()) ?? 3;
+                    final link = tutorialCtrl.text.trim().isEmpty ? null : tutorialCtrl.text.trim();
+                    final state = ctx.read<AppState>();
+                    if (editing && exIndex != null) {
+                      state.editExercise(dayId, exIndex, Exercise(
+                        name: nameCtrl.text.trim(),
+                        sets: sets,
+                        reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
+                        weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
+                        done: ex.done,
+                        imagePath: pickedImagePath,
+                        tutorialLink: link,
+                      ));
+                    } else {
+                      state.addExercise(dayId,
+                        name: nameCtrl.text.trim(),
+                        sets: sets,
+                        reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
+                        weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
+                        imagePath: pickedImagePath,
+                        tutorialLink: link,
+                      );
+                    }
+                    Navigator.of(ctx).pop();
+                  },
+                  child: _SubmitBtn(theme: theme, label: editing ? 'Save changes' : 'Add exercise'),
+                ),
               ]),
-              const SizedBox(height: 10),
-              _GField(theme: theme, hint: 'Weight (e.g. 85 kg / bodyweight)', controller: weightCtrl),
-              const SizedBox(height: 10),
-              _GField(theme: theme, hint: 'Image URL (optional reference photo)', controller: imageUrlCtrl),
-              const SizedBox(height: 10),
-              _GField(theme: theme, hint: 'Tutorial link (YouTube / video URL)', controller: tutorialCtrl),
-              const SizedBox(height: 22),
-              GestureDetector(
-                onTap: () {
-                  if (nameCtrl.text.trim().isEmpty) return;
-                  final sets = int.tryParse(setsCtrl.text.trim()) ?? 3;
-                  final imgUrl = imageUrlCtrl.text.trim().isEmpty ? null : imageUrlCtrl.text.trim();
-                  final link = tutorialCtrl.text.trim().isEmpty ? null : tutorialCtrl.text.trim();
-                  final state = ctx.read<AppState>();
-                  if (editing && exIndex != null) {
-                    state.editExercise(dayId, exIndex, Exercise(
-                      name: nameCtrl.text.trim(),
-                      sets: sets,
-                      reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
-                      weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
-                      done: ex.done,
-                      imageUrl: imgUrl,
-                      tutorialLink: link,
-                    ));
-                  } else {
-                    state.addExercise(dayId,
-                      name: nameCtrl.text.trim(),
-                      sets: sets,
-                      reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
-                      weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
-                      imageUrl: imgUrl,
-                      tutorialLink: link,
-                    );
-                  }
-                  Navigator.of(ctx).pop();
-                },
-                child: _SubmitBtn(theme: theme, label: editing ? 'Save changes' : 'Add exercise'),
-              ),
-            ]),
+            ),
           ),
         ),
       ),
@@ -562,7 +635,7 @@ class _ExerciseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasImage = ex.imageUrl != null && ex.imageUrl!.isNotEmpty;
+    final hasImage = ex.imagePath != null && File(ex.imagePath!).existsSync();
     final hasLink = ex.tutorialLink != null && ex.tutorialLink!.isNotEmpty;
 
     return AnimatedOpacity(
@@ -602,13 +675,13 @@ class _ExerciseRow extends StatelessWidget {
             ),
           ]),
 
-          // Tutorial image (shown below when imageUrl is set)
+          // Tutorial image (shown below when imagePath is set)
           if (hasImage) ...[
             const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                ex.imageUrl!,
+              child: Image.file(
+                File(ex.imagePath!),
                 height: 160,
                 width: double.infinity,
                 fit: BoxFit.cover,

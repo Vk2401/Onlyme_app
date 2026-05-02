@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,6 +13,14 @@ import '../widgets/header.dart';
 import '../widgets/segmented.dart';
 import '../widgets/primitives.dart';
 import '../widgets/confirm_sheet.dart';
+
+String _catLabel(String cat) {
+  switch (cat) {
+    case 'hair': return 'hairstyle';
+    case 'skin': return 'skincare';
+    default: return cat;
+  }
+}
 
 class SnapshotsScreen extends StatefulWidget {
   const SnapshotsScreen({super.key});
@@ -76,9 +85,9 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
               value: cat,
               onChanged: (v) => _goToCat(_cats.indexOf(v)),
               items: [
-                MapEntry('hair', 'Hair  ${snaps['hair']?.length ?? 0}'),
+                MapEntry('hair', 'Hairstyle  ${snaps['hair']?.length ?? 0}'),
                 MapEntry('body', 'Body  ${snaps['body']?.length ?? 0}'),
-                MapEntry('skin', 'Skin  ${snaps['skin']?.length ?? 0}'),
+                MapEntry('skin', 'Skincare  ${snaps['skin']?.length ?? 0}'),
               ],
             ),
           ),
@@ -201,7 +210,7 @@ class _CategoryPage extends StatelessWidget {
               child: Column(children: [
                 Icon(LucideIcons.camera, size: 40, color: theme.muted),
                 const SizedBox(height: 12),
-                Text('No $cat snapshots yet',
+                Text('No ${_catLabel(cat)} snapshots yet',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.ink)),
                 const SizedBox(height: 6),
                 Text('Choose from gallery or take a photo',
@@ -347,10 +356,23 @@ class _SnapCarouselState extends State<_SnapCarousel> {
     _ctrl = PageController(initialPage: widget.initialIndex);
   }
 
-  Future<void> _share(Snapshot snap) async {
+  Future<void> _download(Snapshot snap) async {
     final path = snap.imagePath;
     if (path == null || !File(path).existsSync()) return;
-    await Share.shareXFiles([XFile(path)], text: snap.note.isNotEmpty ? snap.note : 'Snapshot');
+    try {
+      await Gal.putImage(path, album: 'OnlyMe');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Saved to gallery'),
+          ),
+        );
+      }
+    } catch (_) {
+      // Fall back to share if Gal fails (e.g. permission denied)
+      await Share.shareXFiles([XFile(path)], text: snap.note.isNotEmpty ? snap.note : 'Snapshot');
+    }
   }
 
   @override
@@ -432,7 +454,7 @@ class _SnapCarouselState extends State<_SnapCarousel> {
               ])),
               const SizedBox(width: 12),
               GestureDetector(
-                onTap: () => _share(snap),
+                onTap: () => _download(snap),
                 child: Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
@@ -581,7 +603,7 @@ class _AddSnapshotSheetState extends State<_AddSnapshotSheet> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 18),
-          Text('Add ${widget.cat} snapshot', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
+          Text('Add ${_catLabel(widget.cat)} snapshot', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
           const SizedBox(height: 16),
 
           // Image preview or picker buttons
