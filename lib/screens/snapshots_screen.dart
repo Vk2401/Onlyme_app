@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:gal/gal.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
@@ -360,7 +360,8 @@ class _SnapCarouselState extends State<_SnapCarousel> {
     final path = snap.imagePath;
     if (path == null || !File(path).existsSync()) return;
     try {
-      await Gal.putImage(path, album: 'OnlyMe');
+      final result = await ImageGallerySaver.saveFile(path);
+      if (result['isSuccess'] != true) throw Exception('save failed');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
