@@ -32,7 +32,7 @@ class AppState extends ChangeNotifier {
   late List<Expense> expenses;
 
   String screen = 'home';
-  AppTheme theme = AppTheme.build(dark: true, accentKey: AccentKey.mint);
+  AppTheme theme = AppTheme.build(dark: false, accentKey: AccentKey.mint);
   DateTime? lastSyncAt;
 
   AppState._(this.storage);
@@ -62,11 +62,30 @@ class AppState extends ChangeNotifier {
       (e) => e.name == ak,
       orElse: () => AccentKey.mint,
     );
-    state.theme = AppTheme.build(dark: dk ?? true, accentKey: accent);
+    state.theme = AppTheme.build(dark: dk ?? false, accentKey: accent);
 
     final last = s.readLastSync();
     state.lastSyncAt = last == null ? null : DateTime.tryParse(last);
+
+    // Weekly gym reset: clear all done flags at the start of each new week
+    final weekKey = _isoWeekKey(DateTime.now());
+    if (s.readGymLastResetWeek() != weekKey) {
+      state.gym = state.gym.copyWith(
+        days: state.gym.days.map((d) => d.copyWith(
+          done: false,
+          exercises: d.exercises.map((e) => e.copyWith(done: false)).toList(),
+        )).toList(),
+      );
+      await s.writeGym(state.gym);
+      await s.writeGymLastResetWeek(weekKey);
+    }
+
     return state;
+  }
+
+  static String _isoWeekKey(DateTime date) {
+    final monday = date.subtract(Duration(days: date.weekday - 1));
+    return '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
   }
 
   /// Re-plan every task/event notification that is still in the future.
@@ -281,7 +300,7 @@ class AppState extends ChangeNotifier {
           final nextDone = !it.done;
           return it.copyWith(
             done: nextDone,
-            actual: nextDone && it.actual == 0 ? it.est : it.actual,
+            actual: nextDone ? (it.actual == 0 ? it.est : it.actual) : 0,
           );
         }).toList(),
       );
@@ -319,11 +338,11 @@ class AppState extends ChangeNotifier {
   }
 
   // --- Gym CRUD ---
-  void addExercise(int dayId, {required String name, required int sets, required String reps, required String weight}) {
+  void addExercise(int dayId, {required String name, required int sets, required String reps, required String weight, String? imageUrl, String? tutorialLink}) {
     gym = gym.copyWith(
       days: gym.days.map((d) {
         if (d.id != dayId) return d;
-        return d.copyWith(exercises: [...d.exercises, Exercise(name: name, sets: sets, reps: reps, weight: weight, done: false)]);
+        return d.copyWith(exercises: [...d.exercises, Exercise(name: name, sets: sets, reps: reps, weight: weight, done: false, imageUrl: imageUrl, tutorialLink: tutorialLink)]);
       }).toList(),
     );
     storage.writeGym(gym);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../app_state.dart';
 import '../models/gym.dart';
 import '../theme/app_theme.dart';
@@ -393,6 +394,8 @@ class _GymScreenState extends State<GymScreen> {
     final setsCtrl = TextEditingController(text: ex?.sets.toString() ?? '');
     final repsCtrl = TextEditingController(text: ex?.reps ?? '');
     final weightCtrl = TextEditingController(text: ex?.weight ?? '');
+    final imageUrlCtrl = TextEditingController(text: ex?.imageUrl ?? '');
+    final tutorialCtrl = TextEditingController(text: ex?.tutorialLink ?? '');
     final editing = ex != null;
 
     showModalBottomSheet<void>(
@@ -405,47 +408,60 @@ class _GymScreenState extends State<GymScreen> {
         child: Container(
           decoration: BoxDecoration(color: theme.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), border: Border.all(color: theme.rule)),
           padding: const EdgeInsets.fromLTRB(22, 20, 22, 36),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 18),
-            Text(editing ? 'Edit exercise' : 'Add exercise',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
-            const SizedBox(height: 16),
-            _GField(theme: theme, hint: 'Exercise name', controller: nameCtrl, autofocus: !editing),
-            const SizedBox(height: 10),
-            Row(children: [
-              Expanded(child: _GField(theme: theme, hint: 'Sets', controller: setsCtrl, keyboardType: TextInputType.number)),
-              const SizedBox(width: 10),
-              Expanded(child: _GField(theme: theme, hint: 'Reps (e.g. 8 or 12/leg)', controller: repsCtrl)),
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 18),
+              Text(editing ? 'Edit exercise' : 'Add exercise',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
+              const SizedBox(height: 16),
+              _GField(theme: theme, hint: 'Exercise name', controller: nameCtrl, autofocus: !editing),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: _GField(theme: theme, hint: 'Sets', controller: setsCtrl, keyboardType: TextInputType.number)),
+                const SizedBox(width: 10),
+                Expanded(child: _GField(theme: theme, hint: 'Reps (e.g. 8 or 12/leg)', controller: repsCtrl)),
+              ]),
+              const SizedBox(height: 10),
+              _GField(theme: theme, hint: 'Weight (e.g. 85 kg / bodyweight)', controller: weightCtrl),
+              const SizedBox(height: 10),
+              _GField(theme: theme, hint: 'Image URL (optional reference photo)', controller: imageUrlCtrl),
+              const SizedBox(height: 10),
+              _GField(theme: theme, hint: 'Tutorial link (YouTube / video URL)', controller: tutorialCtrl),
+              const SizedBox(height: 22),
+              GestureDetector(
+                onTap: () {
+                  if (nameCtrl.text.trim().isEmpty) return;
+                  final sets = int.tryParse(setsCtrl.text.trim()) ?? 3;
+                  final imgUrl = imageUrlCtrl.text.trim().isEmpty ? null : imageUrlCtrl.text.trim();
+                  final link = tutorialCtrl.text.trim().isEmpty ? null : tutorialCtrl.text.trim();
+                  final state = ctx.read<AppState>();
+                  if (editing && exIndex != null) {
+                    state.editExercise(dayId, exIndex, Exercise(
+                      name: nameCtrl.text.trim(),
+                      sets: sets,
+                      reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
+                      weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
+                      done: ex.done,
+                      imageUrl: imgUrl,
+                      tutorialLink: link,
+                    ));
+                  } else {
+                    state.addExercise(dayId,
+                      name: nameCtrl.text.trim(),
+                      sets: sets,
+                      reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
+                      weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
+                      imageUrl: imgUrl,
+                      tutorialLink: link,
+                    );
+                  }
+                  Navigator.of(ctx).pop();
+                },
+                child: _SubmitBtn(theme: theme, label: editing ? 'Save changes' : 'Add exercise'),
+              ),
             ]),
-            const SizedBox(height: 10),
-            _GField(theme: theme, hint: 'Weight (e.g. 85 kg / bodyweight)', controller: weightCtrl),
-            const SizedBox(height: 22),
-            GestureDetector(
-              onTap: () {
-                if (nameCtrl.text.trim().isEmpty) return;
-                final sets = int.tryParse(setsCtrl.text.trim()) ?? 3;
-                final state = ctx.read<AppState>();
-                if (editing && exIndex != null) {
-                  state.editExercise(dayId, exIndex, ex.copyWith(
-                    name: nameCtrl.text.trim(),
-                    sets: sets,
-                    reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
-                    weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
-                  ));
-                } else {
-                  state.addExercise(dayId,
-                    name: nameCtrl.text.trim(),
-                    sets: sets,
-                    reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
-                    weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
-                  );
-                }
-                Navigator.of(ctx).pop();
-              },
-              child: _SubmitBtn(theme: theme, label: editing ? 'Save changes' : 'Add exercise'),
-            ),
-          ]),
+          ),
         ),
       ),
     );
@@ -546,38 +562,91 @@ class _ExerciseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = ex.imageUrl != null && ex.imageUrl!.isNotEmpty;
+    final hasLink = ex.tutorialLink != null && ex.tutorialLink!.isNotEmpty;
+
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 250),
       opacity: ex.done ? 0.55 : 1,
-      child: AppCard(theme: theme, pad: 14, child: Row(children: [
-        CheckBubble(checked: ex.done, onTap: onToggle, theme: theme),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          Text(ex.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.2, decoration: ex.done ? TextDecoration.lineThrough : null)),
-          const SizedBox(height: 3),
-          Text('${ex.sets} sets × ${ex.reps}', style: TextStyle(fontSize: 12, color: theme.muted)),
-        ])),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: theme.surface2, borderRadius: BorderRadius.circular(10)),
-          child: Text(ex.weight, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.ink)),
-        ),
-        const SizedBox(width: 4),
-        GestureDetector(
-          onTap: onEdit,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.pencil, size: 14, color: theme.muted)),
-        ),
-        GestureDetector(
-          onTap: () async {
-            final ok = await confirmDelete(context,
-                title: 'Delete exercise?', message: '${ex.name} · ${ex.sets}×${ex.reps}');
-            if (ok) onDelete();
-          },
-          behavior: HitTestBehavior.opaque,
-          child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.trash2, size: 14, color: theme.danger)),
-        ),
-      ])),
+      child: AppCard(
+        theme: theme,
+        pad: 14,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            CheckBubble(checked: ex.done, onTap: onToggle, theme: theme),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(ex.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.2, decoration: ex.done ? TextDecoration.lineThrough : null)),
+              const SizedBox(height: 3),
+              Text('${ex.sets} sets × ${ex.reps}', style: TextStyle(fontSize: 12, color: theme.muted)),
+            ])),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: theme.surface2, borderRadius: BorderRadius.circular(10)),
+              child: Text(ex.weight, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.ink)),
+            ),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onEdit,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.pencil, size: 14, color: theme.muted)),
+            ),
+            GestureDetector(
+              onTap: () async {
+                final ok = await confirmDelete(context,
+                    title: 'Delete exercise?', message: '${ex.name} · ${ex.sets}×${ex.reps}');
+                if (ok) onDelete();
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.trash2, size: 14, color: theme.danger)),
+            ),
+          ]),
+
+          // Tutorial image (shown below when imageUrl is set)
+          if (hasImage) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                ex.imageUrl!,
+                height: 160,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 48,
+                  decoration: BoxDecoration(color: theme.surface2, borderRadius: BorderRadius.circular(10)),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(LucideIcons.imageOff, size: 16, color: theme.muted),
+                    const SizedBox(width: 6),
+                    Text('Image unavailable', style: TextStyle(fontSize: 12, color: theme.muted)),
+                  ]),
+                ),
+              ),
+            ),
+          ],
+
+          // Tutorial link button (shown when tutorialLink is set)
+          if (hasLink) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => launchUrl(Uri.parse(ex.tutorialLink!), mode: LaunchMode.externalApplication),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: theme.accent.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.accent.withOpacity(0.3)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(LucideIcons.playCircle, size: 16, color: theme.accent),
+                  const SizedBox(width: 8),
+                  Text('Watch tutorial', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.accent)),
+                ]),
+              ),
+            ),
+          ],
+        ]),
+      ),
     );
   }
 }

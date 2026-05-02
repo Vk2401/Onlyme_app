@@ -4,6 +4,8 @@ class Exercise {
   final String reps;
   final String weight;
   final bool done;
+  final String? imageUrl;
+  final String? tutorialLink;
 
   const Exercise({
     required this.name,
@@ -11,16 +13,30 @@ class Exercise {
     required this.reps,
     required this.weight,
     required this.done,
+    this.imageUrl,
+    this.tutorialLink,
   });
 
-  Exercise copyWith({String? name, int? sets, String? reps, String? weight, bool? done}) =>
+  Exercise copyWith({
+    String? name,
+    int? sets,
+    String? reps,
+    String? weight,
+    bool? done,
+    Object? imageUrl = _keep,
+    Object? tutorialLink = _keep,
+  }) =>
       Exercise(
         name: name ?? this.name,
         sets: sets ?? this.sets,
         reps: reps ?? this.reps,
         weight: weight ?? this.weight,
         done: done ?? this.done,
+        imageUrl: identical(imageUrl, _keep) ? this.imageUrl : imageUrl as String?,
+        tutorialLink: identical(tutorialLink, _keep) ? this.tutorialLink : tutorialLink as String?,
       );
+
+  static const _keep = Object();
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -28,6 +44,8 @@ class Exercise {
         'reps': reps,
         'weight': weight,
         'done': done,
+        if (imageUrl != null) 'imageUrl': imageUrl,
+        if (tutorialLink != null) 'tutorialLink': tutorialLink,
       };
 
   factory Exercise.fromJson(Map<String, dynamic> j) => Exercise(
@@ -36,6 +54,8 @@ class Exercise {
         reps: j['reps'] as String,
         weight: j['weight'] as String,
         done: j['done'] as bool,
+        imageUrl: j['imageUrl'] as String?,
+        tutorialLink: j['tutorialLink'] as String?,
       );
 }
 
