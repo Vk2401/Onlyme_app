@@ -211,21 +211,14 @@ class NotificationsService {
   }) async {
     if (!_ready) await init();
     if (at.isBefore(DateTime.now())) return;
-    try {
-      await _plugin.zonedSchedule(
-        _taskId(id),
-        title,
-        body ?? 'Task reminder',
-        tz.TZDateTime.from(at, tz.local),
-        isAlarm ? _alarmDetails() : _taskDetails(),
-        androidScheduleMode: isAlarm
-            ? AndroidScheduleMode.alarmClock
-            : AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'task:$id',
-      );
-    } catch (_) {}
+    await _scheduleWithFallback(
+      id: _taskId(id),
+      title: title,
+      body: body ?? 'Task reminder',
+      at: at,
+      isAlarm: isAlarm,
+      payload: 'task:$id',
+    );
   }
 
   Future<void> cancelTask(int id) => _plugin.cancel(_taskId(id));
@@ -239,23 +232,16 @@ class NotificationsService {
   }) async {
     if (!_ready) await init();
     final now = DateTime.now();
-    final details = isAlarm ? _alarmDetails() : _eventDetails();
-    final schedMode = isAlarm
-        ? AndroidScheduleMode.alarmClock
-        : AndroidScheduleMode.exactAllowWhileIdle;
-
     try {
       if (at.isAfter(now)) {
-        await _plugin.zonedSchedule(
-          _eventAtId(id),
-          title,
-          body ?? 'Event starting',
-          tz.TZDateTime.from(at, tz.local),
-          details,
-          androidScheduleMode: schedMode,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
+        await _scheduleWithFallback(
+          id: _eventAtId(id),
+          title: title,
+          body: body ?? 'Event starting',
+          at: at,
+          isAlarm: isAlarm,
           payload: 'event:$id',
+          normalDetails: _eventDetails(),
         );
       } else {
         await _plugin.cancel(_eventAtId(id));
@@ -263,16 +249,14 @@ class NotificationsService {
 
       final dayBefore = at.subtract(const Duration(days: 1));
       if (dayBefore.isAfter(now)) {
-        await _plugin.zonedSchedule(
-          _eventDayBeforeId(id),
-          'Tomorrow: $title',
-          body ?? 'Event in 1 day',
-          tz.TZDateTime.from(dayBefore, tz.local),
-          _eventDetails(),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
+        await _scheduleWithFallback(
+          id: _eventDayBeforeId(id),
+          title: 'Tomorrow: $title',
+          body: body ?? 'Event in 1 day',
+          at: dayBefore,
+          isAlarm: false,
           payload: 'event:$id',
+          normalDetails: _eventDetails(),
         );
       } else {
         await _plugin.cancel(_eventDayBeforeId(id));
@@ -296,15 +280,13 @@ class NotificationsService {
     if (!_ready) await init();
     try {
       final at = DateTime.now().add(const Duration(seconds: 10));
-      await _plugin.zonedSchedule(
-        _kTestId,
-        'Test notification',
-        'Notifications are working! ✓',
-        tz.TZDateTime.from(at, tz.local),
-        _taskDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
+      await _scheduleWithFallback(
+        id: _kTestId,
+        title: 'Test notification',
+        body: 'Notifications are working! ✓',
+        at: at,
+        isAlarm: false,
+        payload: '',
       );
       return 'ok';
     } catch (e) {
@@ -313,6 +295,67 @@ class NotificationsService {
   }
 
   // ── Internals ─────────────────────────────────────────────────────────────
+
+  /// Schedules a notification with a three-tier fallback:
+  ///   1. alarmClock (if isAlarm=true) — requires SCHEDULE_EXACT_ALARM on API 34+
+  ///   2. exactAllowWhileIdle — requires SCHEDULE_EXACT_ALARM on API 31+
+  ///   3. inexact — fires within ~15 min window, no special permission needed
+  ///
+  /// This ensures something always fires even when the user hasn't granted the
+  /// exact-alarm special permission yet.
+  Future<void> _scheduleWithFallback({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime at,
+    required bool isAlarm,
+    required String payload,
+    NotificationDetails? normalDetails,
+  }) async {
+    final tzAt = tz.TZDateTime.from(at, tz.local);
+    final details = isAlarm ? _alarmDetails() : (normalDetails ?? _taskDetails());
+
+    // Tier 1: alarmClock mode (highest priority, requires SCHEDULE_EXACT_ALARM on API 34+)
+    if (isAlarm) {
+      try {
+        await _plugin.zonedSchedule(
+          id, title, body, tzAt, _alarmDetails(),
+          androidScheduleMode: AndroidScheduleMode.alarmClock,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload,
+        );
+        return;
+      } catch (_) {
+        // SecurityException on API 34+ without SCHEDULE_EXACT_ALARM — fall through
+      }
+    }
+
+    // Tier 2: exactAllowWhileIdle (requires SCHEDULE_EXACT_ALARM on API 31+)
+    try {
+      await _plugin.zonedSchedule(
+        id, title, body, tzAt, details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+      return;
+    } catch (_) {
+      // SecurityException when SCHEDULE_EXACT_ALARM not granted — fall through
+    }
+
+    // Tier 3: inexact — always works, may fire up to ~15 min late
+    try {
+      await _plugin.zonedSchedule(
+        id, title, body, tzAt, details,
+        androidScheduleMode: AndroidScheduleMode.inexact,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+    } catch (_) {}
+  }
 
   NotificationDetails _taskDetails() => const NotificationDetails(
         android: AndroidNotificationDetails(
