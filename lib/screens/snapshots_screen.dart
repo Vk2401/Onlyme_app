@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../app_state.dart';
 import '../models/snapshot.dart';
 import '../theme/app_theme.dart';
@@ -20,15 +21,34 @@ class SnapshotsScreen extends StatefulWidget {
 }
 
 class _SnapshotsScreenState extends State<SnapshotsScreen> {
-  String cat = 'hair';
+  static const _cats = ['hair', 'body', 'skin'];
+  int _catIndex = 0;
+  String get cat => _cats[_catIndex];
+  late final PageController _catCtrl;
   int? openIndex;
 
   @override
   void initState() {
     super.initState();
+    _catCtrl = PageController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<AppState>().pruneDeletedSnapshotImages();
     });
+  }
+
+  @override
+  void dispose() {
+    _catCtrl.dispose();
+    super.dispose();
+  }
+
+  void _goToCat(int index) {
+    if (index == _catIndex) return;
+    setState(() {
+      _catIndex = index;
+      openIndex = null;
+    });
+    _catCtrl.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
   @override
@@ -39,8 +59,8 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
     final items = snaps[cat] ?? const [];
 
     return Stack(children: [
-      ListView(
-        padding: const EdgeInsets.fromLTRB(0, 0, 0, 120),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           AppHeader(
             theme: theme,
@@ -52,8 +72,9 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Segmented<String>(
-              theme: theme, value: cat,
-              onChanged: (v) => setState(() => cat = v),
+              theme: theme,
+              value: cat,
+              onChanged: (v) => _goToCat(_cats.indexOf(v)),
               items: [
                 MapEntry('hair', 'Hair  ${snaps['hair']?.length ?? 0}'),
                 MapEntry('body', 'Body  ${snaps['body']?.length ?? 0}'),
@@ -63,7 +84,7 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Prominent add button
+          // Add button
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
             child: GestureDetector(
@@ -83,59 +104,39 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
 
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: AppCard(
-                theme: theme, pad: 32,
-                child: Column(children: [
-                  Icon(LucideIcons.camera, size: 40, color: theme.muted),
-                  const SizedBox(height: 12),
-                  Text('No $cat snapshots yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.ink)),
-                  const SizedBox(height: 6),
-                  Text('Choose from gallery or take a photo', style: TextStyle(fontSize: 13, color: theme.muted)),
-                  const SizedBox(height: 18),
-                  GestureDetector(
-                    onTap: () => _openAddSheet(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      decoration: BoxDecoration(color: theme.accent, borderRadius: BorderRadius.circular(12)),
-                      child: const Text('Add snapshot', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-                    ),
-                  ),
-                ]),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: items.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 0.7,
-                ),
-                itemBuilder: (_, i) {
-                  final s = items[i];
-                  return _SnapTile(
-                    snap: s, theme: theme,
-                    onTap: () => setState(() => openIndex = i),
-                    onDelete: () async {
-                      final ok = await confirmDelete(
-                        context,
-                        title: 'Delete snapshot?',
-                        message: s.note.isEmpty ? s.date : '${s.note} · ${s.date}',
-                      );
-                      if (!ok || !context.mounted) return;
-                      context.read<AppState>().deleteSnapshot(cat, s.id);
-                    },
-                  );
-                },
-              ),
+          // Swipeable category pages
+          Expanded(
+            child: PageView.builder(
+              controller: _catCtrl,
+              itemCount: _cats.length,
+              onPageChanged: (i) => setState(() {
+                _catIndex = i;
+                openIndex = null;
+              }),
+              itemBuilder: (_, pageIndex) {
+                final c = _cats[pageIndex];
+                final catItems = snaps[c] ?? const [];
+                return _CategoryPage(
+                  cat: c,
+                  items: catItems,
+                  theme: theme,
+                  onOpen: (i) => setState(() => openIndex = i),
+                  onDelete: (s) async {
+                    final ok = await confirmDelete(
+                      context,
+                      title: 'Delete snapshot?',
+                      message: s.note.isEmpty ? s.date : '${s.note} · ${s.date}',
+                    );
+                    if (!ok || !context.mounted) return;
+                    context.read<AppState>().deleteSnapshot(c, s.id);
+                  },
+                  onAddTap: () => _openAddSheet(context),
+                );
+              },
             ),
+          ),
         ],
       ),
 
@@ -166,6 +167,74 @@ class _SnapshotsScreenState extends State<SnapshotsScreen> {
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.5),
       builder: (_) => _AddSnapshotSheet(cat: cat),
+    );
+  }
+}
+
+// ── Category page (single swipeable page inside PageView) ─────────────────────
+
+class _CategoryPage extends StatelessWidget {
+  final String cat;
+  final List<Snapshot> items;
+  final AppTheme theme;
+  final void Function(int) onOpen;
+  final void Function(Snapshot) onDelete;
+  final VoidCallback onAddTap;
+
+  const _CategoryPage({
+    required this.cat,
+    required this.items,
+    required this.theme,
+    required this.onOpen,
+    required this.onDelete,
+    required this.onAddTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+      child: items.isEmpty
+          ? AppCard(
+              theme: theme,
+              pad: 32,
+              child: Column(children: [
+                Icon(LucideIcons.camera, size: 40, color: theme.muted),
+                const SizedBox(height: 12),
+                Text('No $cat snapshots yet',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.ink)),
+                const SizedBox(height: 6),
+                Text('Choose from gallery or take a photo',
+                    style: TextStyle(fontSize: 13, color: theme.muted)),
+                const SizedBox(height: 18),
+                GestureDetector(
+                  onTap: onAddTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(color: theme.accent, borderRadius: BorderRadius.circular(12)),
+                    child: const Text('Add snapshot',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                  ),
+                ),
+              ]),
+            )
+          : GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: items.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 0.7,
+              ),
+              itemBuilder: (_, i) {
+                final s = items[i];
+                return _SnapTile(
+                  snap: s,
+                  theme: theme,
+                  onTap: () => onOpen(i),
+                  onDelete: () => onDelete(s),
+                );
+              },
+            ),
     );
   }
 }
@@ -278,6 +347,12 @@ class _SnapCarouselState extends State<_SnapCarousel> {
     _ctrl = PageController(initialPage: widget.initialIndex);
   }
 
+  Future<void> _share(Snapshot snap) async {
+    final path = snap.imagePath;
+    if (path == null || !File(path).existsSync()) return;
+    await Share.shareXFiles([XFile(path)], text: snap.note.isNotEmpty ? snap.note : 'Snapshot');
+  }
+
   @override
   void didUpdateWidget(_SnapCarousel old) {
     super.didUpdateWidget(old);
@@ -356,6 +431,15 @@ class _SnapCarouselState extends State<_SnapCarousel> {
                     style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.65), letterSpacing: 1.5, fontWeight: FontWeight.w500)),
               ])),
               const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => _share(snap),
+                child: Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
+                  child: const Icon(LucideIcons.download, color: Colors.white, size: 17),
+                ),
+              ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => widget.onDelete(snap),
                 child: Container(

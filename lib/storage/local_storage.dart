@@ -28,6 +28,7 @@ class LocalStorage {
   static const _kLinks = 'onlyme:links';
   static const _kVault = 'onlyme:vault';
   static const _kExpenses = 'onlyme:expenses';
+  static const _kGymLastResetWeek = 'onlyme:gym:lastResetWeek';
 
   final SharedPreferences _p;
   LocalStorage(this._p);
@@ -174,4 +175,8 @@ class LocalStorage {
 
   Future<void> writeExpenses(List<Expense> expenses) =>
       _p.setString(_kExpenses, jsonEncode(expenses.map((e) => e.toJson()).toList()));
+
+  // --- Gym weekly reset ---
+  String? readGymLastResetWeek() => _p.getString(_kGymLastResetWeek);
+  Future<void> writeGymLastResetWeek(String key) => _p.setString(_kGymLastResetWeek, key);
 }
