@@ -6,9 +6,19 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'Version name shown to users (e.g. 1.2.0)'
+        description: 'Version name shown to users (e.g. 1.2.0). Leave empty to keep current.'
         required: false
         default: ''
+      track:
+        description: 'Play Store track to release to'
+        required: false
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
 
 jobs:
   build:
@@ -147,3 +157,26 @@ jobs:
             - AAB is for Play Store upload only
           files: releases/*
           make_latest: true
+
+      # ── Google Play Deploy ─────────────────────────────────────────────────
+      # Every push to main → Internal Testing (fast, auto)
+      - name: Deploy to Play Store — Internal Testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          packageName: com.vasanthkumar24.onlyme
+          releaseFiles: releases/*.aab
+          track: internal
+          status: completed
+
+      # Manual trigger only → chosen track (alpha = Closed Testing, beta, production)
+      - name: Deploy to Play Store — ${{ github.event.inputs.track || 'internal' }}
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.track != 'internal' && github.event.inputs.track != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          packageName: com.vasanthkumar24.onlyme
+          releaseFiles: releases/*.aab
+          track: ${{ github.event.inputs.track }}
+          status: completed
+          whatsNewDirectory: distribution/whatsnew
