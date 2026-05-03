@@ -1,11 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import '../app_state.dart';
 import '../models/snapshot.dart';
 import '../theme/app_theme.dart';
@@ -359,21 +358,10 @@ class _SnapCarouselState extends State<_SnapCarousel> {
   Future<void> _download(Snapshot snap) async {
     final path = snap.imagePath;
     if (path == null || !File(path).existsSync()) return;
-    try {
-      final result = await ImageGallerySaver.saveFile(path);
-      if (result['isSuccess'] != true) throw Exception('save failed');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text('Saved to gallery'),
-          ),
-        );
-      }
-    } catch (_) {
-      // Fall back to share if Gal fails (e.g. permission denied)
-      await Share.shareXFiles([XFile(path)], text: snap.note.isNotEmpty ? snap.note : 'Snapshot');
-    }
+    await Share.shareXFiles(
+      [XFile(path)],
+      text: snap.note.isNotEmpty ? snap.note : null,
+    );
   }
 
   @override
