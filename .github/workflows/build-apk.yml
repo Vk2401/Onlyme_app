@@ -78,6 +78,7 @@ jobs:
           git add pubspec.yaml
           git diff --staged --quiet || git commit \
             -m "chore: bump version to ${{ steps.version.outputs.full_version }} [skip ci]"
+          git pull origin main --rebase
           git push
 
       - name: Get dependencies
