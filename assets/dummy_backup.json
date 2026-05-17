@@ -1,0 +1,429 @@
+{
+  "app": "onlyme",
+  "version": 1,
+  "exportedAt": "2026-05-17T09:00:00.000Z",
+  "data": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Morning workout",
+        "time": "06:30 AM",
+        "cat": "Health",
+        "icon": "🏋️",
+        "color": 4280391411,
+        "done": false,
+        "streak": 12,
+        "scheduledAt": null,
+        "isAlarm": false
+      },
+      {
+        "id": 2,
+        "title": "Read 20 pages",
+        "time": "08:00 PM",
+        "cat": "Learning",
+        "icon": "📚",
+        "color": 4284572592,
+        "done": true,
+        "streak": 7,
+        "scheduledAt": null,
+        "isAlarm": false
+      },
+      {
+        "id": 3,
+        "title": "Drink 8 glasses of water",
+        "time": "All day",
+        "cat": "Health",
+        "icon": "💧",
+        "color": 4278222984,
+        "done": false,
+        "streak": 5,
+        "scheduledAt": null,
+        "isAlarm": false
+      },
+      {
+        "id": 4,
+        "title": "Meditate",
+        "time": "07:00 AM",
+        "cat": "Mindfulness",
+        "icon": "🧘",
+        "color": 4293467747,
+        "done": false,
+        "streak": 20,
+        "scheduledAt": null,
+        "isAlarm": false
+      },
+      {
+        "id": 5,
+        "title": "Journal entry",
+        "time": "10:00 PM",
+        "cat": "Personal",
+        "icon": "✍️",
+        "color": 4294940928,
+        "done": true,
+        "streak": 3,
+        "scheduledAt": null,
+        "isAlarm": false
+      }
+    ],
+    "debts": [
+      {
+        "id": 1,
+        "person": "Rahul",
+        "type": "they_owe",
+        "total": 2500,
+        "paid": 1000,
+        "due": "Jun 1",
+        "note": "Borrowed for movie tickets and dinner",
+        "settled": false
+      },
+      {
+        "id": 2,
+        "person": "Priya",
+        "type": "i_owe",
+        "total": 1500,
+        "paid": 0,
+        "due": "May 30",
+        "note": "Split the grocery bill",
+        "settled": false
+      },
+      {
+        "id": 3,
+        "person": "Arjun",
+        "type": "they_owe",
+        "total": 5000,
+        "paid": 5000,
+        "due": "Apr 15",
+        "note": "Petrol money",
+        "settled": true
+      },
+      {
+        "id": 4,
+        "person": "Sneha",
+        "type": "i_owe",
+        "total": 800,
+        "paid": 400,
+        "due": "Jun 10",
+        "note": "Coffee and snacks",
+        "settled": false
+      }
+    ],
+    "events": [
+      {
+        "id": 1,
+        "title": "Trip to Ooty",
+        "date": "Jun 15",
+        "daysAway": 29,
+        "icon": "🏔️",
+        "color": 4280391411,
+        "items": [
+          { "id": 1, "label": "Train tickets", "est": 1200, "actual": 1100, "done": true },
+          { "id": 2, "label": "Hotel booking", "est": 3000, "actual": 0, "done": false },
+          { "id": 3, "label": "Food budget", "est": 2000, "actual": 0, "done": false },
+          { "id": 4, "label": "Sightseeing", "est": 1500, "actual": 0, "done": false }
+        ],
+        "scheduledAt": null,
+        "isAlarm": false
+      },
+      {
+        "id": 2,
+        "title": "Birthday party",
+        "date": "May 25",
+        "daysAway": 8,
+        "icon": "🎂",
+        "color": 4293467747,
+        "items": [
+          { "id": 1, "label": "Cake order", "est": 800, "actual": 750, "done": true },
+          { "id": 2, "label": "Decorations", "est": 500, "actual": 0, "done": false },
+          { "id": 3, "label": "Gifts", "est": 1000, "actual": 0, "done": false }
+        ],
+        "scheduledAt": null,
+        "isAlarm": false
+      },
+      {
+        "id": 3,
+        "title": "Gym membership renewal",
+        "date": "Jun 1",
+        "daysAway": 15,
+        "icon": "💪",
+        "color": 4283215696,
+        "items": [
+          { "id": 1, "label": "Annual fee", "est": 8000, "actual": 0, "done": false }
+        ],
+        "scheduledAt": null,
+        "isAlarm": false
+      }
+    ],
+    "gym": {
+      "name": "My Workout Plan",
+      "days": [
+        {
+          "id": 0,
+          "short": "Mon",
+          "label": "Chest & Triceps",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            { "name": "Bench Press", "sets": 4, "reps": "10–12", "weight": "60 kg", "done": false },
+            { "name": "Incline Dumbbell Press", "sets": 3, "reps": "12", "weight": "20 kg", "done": false },
+            { "name": "Cable Flyes", "sets": 3, "reps": "15", "weight": "15 kg", "done": false },
+            { "name": "Tricep Pushdown", "sets": 3, "reps": "12", "weight": "20 kg", "done": false },
+            { "name": "Skull Crushers", "sets": 3, "reps": "10", "weight": "15 kg", "done": false }
+          ]
+        },
+        {
+          "id": 1,
+          "short": "Tue",
+          "label": "Back & Biceps",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            { "name": "Pull-ups", "sets": 4, "reps": "8–10", "weight": "Bodyweight", "done": false },
+            { "name": "Bent-over Rows", "sets": 4, "reps": "10", "weight": "50 kg", "done": false },
+            { "name": "Lat Pulldown", "sets": 3, "reps": "12", "weight": "40 kg", "done": false },
+            { "name": "Barbell Curls", "sets": 3, "reps": "12", "weight": "25 kg", "done": false },
+            { "name": "Hammer Curls", "sets": 3, "reps": "12", "weight": "10 kg", "done": false }
+          ]
+        },
+        {
+          "id": 2,
+          "short": "Wed",
+          "label": "Rest",
+          "today": false,
+          "done": false,
+          "isRest": true,
+          "exercises": []
+        },
+        {
+          "id": 3,
+          "short": "Thu",
+          "label": "Shoulders",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            { "name": "Overhead Press", "sets": 4, "reps": "10", "weight": "40 kg", "done": false },
+            { "name": "Lateral Raises", "sets": 3, "reps": "15", "weight": "8 kg", "done": false },
+            { "name": "Front Raises", "sets": 3, "reps": "12", "weight": "8 kg", "done": false },
+            { "name": "Face Pulls", "sets": 3, "reps": "15", "weight": "15 kg", "done": false }
+          ]
+        },
+        {
+          "id": 4,
+          "short": "Fri",
+          "label": "Legs",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            { "name": "Squats", "sets": 4, "reps": "10–12", "weight": "80 kg", "done": false },
+            { "name": "Leg Press", "sets": 3, "reps": "15", "weight": "100 kg", "done": false },
+            { "name": "Romanian Deadlift", "sets": 3, "reps": "10", "weight": "60 kg", "done": false },
+            { "name": "Calf Raises", "sets": 4, "reps": "20", "weight": "40 kg", "done": false }
+          ]
+        },
+        {
+          "id": 5,
+          "short": "Sat",
+          "label": "Core & Cardio",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            { "name": "Plank", "sets": 3, "reps": "60 sec", "weight": "Bodyweight", "done": false },
+            { "name": "Crunches", "sets": 3, "reps": "20", "weight": "Bodyweight", "done": false },
+            { "name": "Leg Raises", "sets": 3, "reps": "15", "weight": "Bodyweight", "done": false },
+            { "name": "Treadmill", "sets": 1, "reps": "20 min", "weight": "—", "done": false }
+          ]
+        },
+        {
+          "id": 6,
+          "short": "Sun",
+          "label": "Rest",
+          "today": false,
+          "done": false,
+          "isRest": true,
+          "exercises": []
+        }
+      ]
+    },
+    "snapshots": {
+      "hair": [
+        {
+          "id": 1,
+          "date": "May 1, 2026",
+          "note": "Fresh cut — tapered sides",
+          "hue": 30,
+          "imagePath": null
+        },
+        {
+          "id": 2,
+          "date": "Apr 1, 2026",
+          "note": "Grew it out a bit",
+          "hue": 45,
+          "imagePath": null
+        }
+      ],
+      "skin": [
+        {
+          "id": 3,
+          "date": "May 10, 2026",
+          "note": "Skin cleared up after new routine",
+          "hue": 180,
+          "imagePath": null
+        },
+        {
+          "id": 4,
+          "date": "Apr 15, 2026",
+          "note": "Started using sunscreen daily",
+          "hue": 200,
+          "imagePath": null
+        }
+      ],
+      "body": [
+        {
+          "id": 5,
+          "date": "May 17, 2026",
+          "note": "Week 8 progress — visible gains",
+          "hue": 120,
+          "imagePath": null
+        },
+        {
+          "id": 6,
+          "date": "Apr 1, 2026",
+          "note": "Starting point — Week 1",
+          "hue": 100,
+          "imagePath": null
+        }
+      ]
+    },
+    "weightLogs": [
+      { "ts": 1746057600000, "kg": 74.5, "date": "May 1" },
+      { "ts": 1746316800000, "kg": 74.2, "date": "May 4" },
+      { "ts": 1746576000000, "kg": 73.9, "date": "May 7" },
+      { "ts": 1746835200000, "kg": 73.6, "date": "May 10" },
+      { "ts": 1747094400000, "kg": 73.3, "date": "May 13" },
+      { "ts": 1747353600000, "kg": 73.0, "date": "May 16" }
+    ],
+    "profile": {
+      "name": "Vasanth",
+      "dob": "2000-01-15",
+      "phone": "+91 98765 43210",
+      "createdAt": 1700000000000,
+      "currencySymbol": "₹",
+      "alarmSoundPath": null,
+      "alarmSoundName": null
+    },
+    "notes": [
+      {
+        "id": 1,
+        "title": "Goals for 2026",
+        "body": "1. Hit 70 kg body weight\n2. Read 24 books\n3. Save ₹1,00,000\n4. Learn a new skill every quarter\n5. Travel to 2 new places",
+        "createdAt": 1746000000000
+      },
+      {
+        "id": 2,
+        "title": "Morning routine",
+        "body": "5:45 AM — Wake up\n6:00 AM — Meditate (10 min)\n6:15 AM — Workout\n7:15 AM — Cold shower\n7:30 AM — Breakfast\n8:00 AM — Read / Journal",
+        "createdAt": 1745000000000
+      },
+      {
+        "id": 3,
+        "title": "Books to read",
+        "body": "• Atomic Habits — James Clear\n• Deep Work — Cal Newport\n• The Psychology of Money — Morgan Housel\n• Ikigai — Francesc Miralles\n• Can't Hurt Me — David Goggins",
+        "createdAt": 1744000000000
+      },
+      {
+        "id": 4,
+        "title": "Diet plan",
+        "body": "Breakfast: Oats + banana + eggs\nLunch: Rice + dal + vegetables\nPre-workout: Banana + peanut butter\nDinner: Chicken + salad\nSnacks: Nuts, fruits",
+        "createdAt": 1743000000000
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "title": "Flutter documentation",
+        "url": "https://flutter.dev/docs",
+        "createdAt": 1746000000000
+      },
+      {
+        "id": 2,
+        "title": "Dart language tour",
+        "url": "https://dart.dev/guides/language/language-tour",
+        "createdAt": 1745500000000
+      },
+      {
+        "id": 3,
+        "title": "Atomic Habits summary",
+        "url": "https://jamesclear.com/atomic-habits",
+        "createdAt": 1745000000000
+      },
+      {
+        "id": 4,
+        "title": "My workout tracker spreadsheet",
+        "url": "https://docs.google.com/spreadsheets",
+        "createdAt": 1744500000000
+      },
+      {
+        "id": 5,
+        "title": "IRCTC Train booking",
+        "url": "https://www.irctc.co.in",
+        "createdAt": 1744000000000
+      }
+    ],
+    "vault": [
+      {
+        "id": 1,
+        "title": "Gmail",
+        "username": "vasanth@gmail.com",
+        "password": "MyS3cur3P@ss!",
+        "url": "https://mail.google.com",
+        "note": "Personal email account",
+        "createdAt": 1746000000000
+      },
+      {
+        "id": 2,
+        "title": "Netflix",
+        "username": "vasanth@gmail.com",
+        "password": "Netfl1x#2026",
+        "url": "https://netflix.com",
+        "note": "Shared with family",
+        "createdAt": 1745000000000
+      },
+      {
+        "id": 3,
+        "title": "Bank PIN",
+        "username": null,
+        "password": "4782",
+        "url": null,
+        "note": "SBI debit card PIN",
+        "createdAt": 1744000000000
+      },
+      {
+        "id": 4,
+        "title": "GitHub",
+        "username": "vk2401",
+        "password": "G1tHub@Secure",
+        "url": "https://github.com",
+        "note": "Personal dev account",
+        "createdAt": 1743000000000
+      }
+    ],
+    "expenses": [
+      { "id": 1, "amount": 450, "category": "Food", "note": "Lunch with friends", "dateStr": "May 17", "timestamp": 1747440000000 },
+      { "id": 2, "amount": 200, "category": "Transport", "note": "Uber to office", "dateStr": "May 17", "timestamp": 1747430000000 },
+      { "id": 3, "amount": 1299, "category": "Shopping", "note": "New headphones", "dateStr": "May 16", "timestamp": 1747353600000 },
+      { "id": 4, "amount": 350, "category": "Food", "note": "Groceries", "dateStr": "May 15", "timestamp": 1747267200000 },
+      { "id": 5, "amount": 999, "category": "Entertainment", "note": "Movie tickets x2", "dateStr": "May 14", "timestamp": 1747180800000 },
+      { "id": 6, "amount": 500, "category": "Health", "note": "Protein powder", "dateStr": "May 13", "timestamp": 1747094400000 },
+      { "id": 7, "amount": 1500, "category": "Bills", "note": "Electricity bill", "dateStr": "May 12", "timestamp": 1747008000000 },
+      { "id": 8, "amount": 250, "category": "Food", "note": "Breakfast", "dateStr": "May 12", "timestamp": 1746990000000 },
+      { "id": 9, "amount": 800, "category": "Education", "note": "Online course", "dateStr": "May 10", "timestamp": 1746835200000 },
+      { "id": 10, "amount": 150, "category": "Transport", "note": "Auto to gym", "dateStr": "May 10", "timestamp": 1746820000000 }
+    ],
+    "accent": "violet",
+    "dark": false
+  }
+}
