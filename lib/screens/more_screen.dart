@@ -60,13 +60,6 @@ class MoreScreen extends StatelessWidget {
         ? 'No weights logged'
         : '${state.weightLogs.length} entries · latest ${state.weightLogs.last.kg.toStringAsFixed(1)} kg';
 
-    final profileSub = profile.isEmpty
-        ? 'Tap to set up'
-        : [
-            if (profile.name != null && profile.name!.isNotEmpty) profile.name!,
-            if (profile.age != null) '${profile.age} yrs',
-          ].join(' · ');
-
     final notesSub = state.notes.isEmpty ? 'No notes yet' : '${state.notes.length} saved';
     final linksSub = state.links.isEmpty ? 'No links saved' : '${state.links.length} saved';
     final vaultSub = state.vault.isEmpty ? 'No entries · locked' : '${state.vault.length} entries · locked';
