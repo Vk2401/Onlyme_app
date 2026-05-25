@@ -112,7 +112,7 @@ class _GymScreenState extends State<GymScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onLongPress: () => _openEditDayLabelSheet(context, theme, day),
+                onTap: () => _openEditDayLabelSheet(context, theme, day),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(day.id == todayId ? 'Today' : 'Session',
                       style: TextStyle(fontSize: 12, color: theme.muted, fontWeight: FontWeight.w500)),
@@ -120,7 +120,7 @@ class _GymScreenState extends State<GymScreen> {
                   Row(children: [
                     Text(day.label, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: theme.ink, letterSpacing: -0.5)),
                     const SizedBox(width: 6),
-                    Icon(LucideIcons.pencil, size: 13, color: theme.muted),
+                    Icon(LucideIcons.pencil, size: 13, color: theme.accent),
                   ]),
                 ]),
               ),
@@ -161,7 +161,7 @@ class _GymScreenState extends State<GymScreen> {
         const SizedBox(height: 16),
 
         // Exercises or rest day view
-        if (day.isRest && day.exercises.isEmpty)
+        if (day.isRest)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: AppCard(theme: theme, pad: 30, child: Column(children: [

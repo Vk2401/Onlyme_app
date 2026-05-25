@@ -34,7 +34,7 @@ class HomeScreen extends StatelessWidget {
           theme: theme,
           greeting: const Greeting(sub: 'Welcome back', title: 'Only me'),
           right: [
-            HeaderBtn(theme: theme, icon: LucideIcons.bell),
+            HeaderBtn(theme: theme, icon: LucideIcons.settings2, onTap: () => state.setScreen('more')),
           ],
         ),
 

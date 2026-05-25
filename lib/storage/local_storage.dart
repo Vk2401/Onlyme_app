@@ -29,6 +29,7 @@ class LocalStorage {
   static const _kVault = 'onlyme:vault';
   static const _kExpenses = 'onlyme:expenses';
   static const _kGymLastResetWeek = 'onlyme:gym:lastResetWeek';
+  static const _kGymLastResetDay  = 'onlyme:gym:lastResetDay';
 
   final SharedPreferences _p;
   LocalStorage(this._p);
@@ -179,4 +180,6 @@ class LocalStorage {
   // --- Gym weekly reset ---
   String? readGymLastResetWeek() => _p.getString(_kGymLastResetWeek);
   Future<void> writeGymLastResetWeek(String key) => _p.setString(_kGymLastResetWeek, key);
+  String? readGymLastResetDay() => _p.getString(_kGymLastResetDay);
+  Future<void> writeGymLastResetDay(String key) => _p.setString(_kGymLastResetDay, key);
 }

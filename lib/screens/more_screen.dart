@@ -87,32 +87,24 @@ class MoreScreen extends StatelessWidget {
         ? 'No expenses logged'
         : '${state.expenses.length} entries · $cur${_fmtK(totalExpenses)} total';
 
-    final sections = <_Section>[
-      _Section('Trackers', [
-        _Item('tasks', 'Tasks', tasksSub, 'checkCircle', const Color(0xFF8B7CFF)),
-        _Item('finance', 'Finance', financeSub, 'wallet', const Color(0xFF34D399)),
-        _Item('events', 'Events', eventsSub, 'calendar', const Color(0xFFFB7185)),
-        _Item('expenses', 'Expenses', expensesSub, 'receipt', const Color(0xFFFF8C42)),
-      ]),
-      _Section('Health', [
-        _Item('gym', 'Gym', gymSub, 'dumbbell', const Color(0xFFF472B6)),
-        _Item('snapshots', 'Snapshots', snapsSub, 'camera', const Color(0xFFFBBF24)),
-        _Item('gym', 'Weight log', weightSub, 'trendUp', const Color(0xFF60A5FA)),
-      ]),
-      _Section('Memory', [
-        _Item('notes', 'Notes', notesSub, 'note', const Color(0xFFA78BFA)),
-        _Item('links', 'Saved links', linksSub, 'link', const Color(0xFF34D399)),
-        _Item('vault', 'Vault', vaultSub, 'lock', const Color(0xFFEF4444)),
-      ]),
-      _Section('Account', [
-        _Item('profile', 'Profile', profileSub, 'user', const Color(0xFF94A3B8)),
-      ]),
+
+    final modules = <_ModCard>[
+      _ModCard('tasks',     'Tasks',       tasksSub,      'checkCircle', const Color(0xFF8B7CFF)),
+      _ModCard('finance',   'Finance',     financeSub,    'wallet',      const Color(0xFF34D399)),
+      _ModCard('events',    'Events',      eventsSub,     'calendar',    const Color(0xFFFB7185)),
+      _ModCard('expenses',  'Expenses',    expensesSub,   'receipt',     const Color(0xFFFF8C42)),
+      _ModCard('gym',       'Workout',     gymSub,        'dumbbell',    const Color(0xFFF472B6)),
+      _ModCard('snapshots', 'Snapshots',   snapsSub,      'camera',      const Color(0xFFFBBF24)),
+      _ModCard('notes',     'Notes',       notesSub,      'note',        const Color(0xFFA78BFA)),
+      _ModCard('links',     'Links',       linksSub,      'link',        const Color(0xFF34D399)),
+      _ModCard('vault',     'Vault',       vaultSub,      'lock',        const Color(0xFFEF4444)),
+      _ModCard('gym',       'Weight',      weightSub,     'trendUp',     const Color(0xFF60A5FA)),
     ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 120),
       children: [
-        AppHeader(theme: theme, greeting: const Greeting(sub: 'Settings & tools', title: 'More'),
+        AppHeader(theme: theme, greeting: const Greeting(sub: 'Quick view', title: 'Overview'),
           right: [HeaderBtn(theme: theme, icon: LucideIcons.settings, onTap: onOpenTweaks)]),
 
         // Profile header
@@ -123,54 +115,70 @@ class MoreScreen extends StatelessWidget {
             child: Row(children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 56, height: 56,
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset('assets/images/logo.png', width: 52, height: 52, fit: BoxFit.contain),
               ),
               const SizedBox(width: 14),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(displayName, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.ink)),
-                  const SizedBox(height: 2),
-                  Text('Since ${_monthYear(since)} · $totalEntries entries',
-                      style: TextStyle(fontSize: 13, color: theme.muted)),
-                ],
-              )),
-              GestureDetector(
-                onTap: () => state.setScreen('profile'),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(border: Border.all(color: theme.rule, width: 1), borderRadius: BorderRadius.circular(10)),
-                  child: Text('Edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.ink)),
-                ),
-              ),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(displayName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.ink)),
+                const SizedBox(height: 2),
+                Text('Since ${_monthYear(since)} · $totalEntries entries',
+                    style: TextStyle(fontSize: 12, color: theme.muted)),
+              ])),
+              Icon(LucideIcons.chevronRight, size: 16, color: theme.muted),
             ]),
           ),
         ),
 
-        for (final s in sections) ...[
-          const SizedBox(height: 22),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
-            child: Text(s.head.toUpperCase(), style: TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w700, color: theme.muted, letterSpacing: 1,
-            )),
+        // Quick-view module grid
+        const SizedBox(height: 20),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+          child: Text('MODULES', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.muted, letterSpacing: 1)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: modules.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.55,
+            ),
+            itemBuilder: (_, i) {
+              final m = modules[i];
+              return GestureDetector(
+                onTap: () => state.setScreen(m.key),
+                child: AppCard(theme: theme, pad: 14, child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(children: [
+                      Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: m.color.withOpacity(0.13),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(AppIcons.byKey(m.icon), color: m.color, size: 18),
+                      ),
+                      const Spacer(),
+                      Icon(LucideIcons.arrowUpRight, size: 13, color: theme.muted),
+                    ]),
+                    const SizedBox(height: 10),
+                    Text(m.label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.ink, letterSpacing: -0.2)),
+                    const SizedBox(height: 2),
+                    Text(m.sub, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: theme.muted)),
+                  ],
+                )),
+              );
+            },
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: AppCard(theme: theme, pad: 0, child: Column(children: [
-              for (var i = 0; i < s.items.length; i++) _MoreRow(
-                item: s.items[i],
-                hasTop: i > 0,
-                onTap: () => state.setScreen(s.items[i].key),
-              ),
-            ])),
-          ),
-        ],
+        ),
 
         const SizedBox(height: 22),
         Padding(
@@ -311,10 +319,13 @@ class _MoreRow extends StatelessWidget {
   }
 }
 
-class _Section {
-  final String head;
-  final List<_Item> items;
-  const _Section(this.head, this.items);
+class _ModCard {
+  final String key;
+  final String label;
+  final String sub;
+  final String icon;
+  final Color color;
+  const _ModCard(this.key, this.label, this.sub, this.icon, this.color);
 }
 
 class _Item {

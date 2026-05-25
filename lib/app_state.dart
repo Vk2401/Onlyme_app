@@ -67,17 +67,26 @@ class AppState extends ChangeNotifier {
     final last = s.readLastSync();
     state.lastSyncAt = last == null ? null : DateTime.tryParse(last);
 
-    // Weekly gym reset: clear all done flags at the start of each new week
+    // Weekly gym reset: clear day.done at the start of each new week
     final weekKey = _isoWeekKey(DateTime.now());
     if (s.readGymLastResetWeek() != weekKey) {
       state.gym = state.gym.copyWith(
+        days: state.gym.days.map((d) => d.copyWith(done: false)).toList(),
+      );
+      await s.writeGym(state.gym);
+      await s.writeGymLastResetWeek(weekKey);
+    }
+
+    // Daily gym reset: clear exercise.done at the start of each new day
+    final dayKey = _isoDayKey(DateTime.now());
+    if (s.readGymLastResetDay() != dayKey) {
+      state.gym = state.gym.copyWith(
         days: state.gym.days.map((d) => d.copyWith(
-          done: false,
           exercises: d.exercises.map((e) => e.copyWith(done: false)).toList(),
         )).toList(),
       );
       await s.writeGym(state.gym);
-      await s.writeGymLastResetWeek(weekKey);
+      await s.writeGymLastResetDay(dayKey);
     }
 
     return state;
@@ -87,6 +96,9 @@ class AppState extends ChangeNotifier {
     final monday = date.subtract(Duration(days: date.weekday - 1));
     return '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
   }
+
+  static String _isoDayKey(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   /// Re-plan every task/event notification that is still in the future.
   /// Called from main() after NotificationsService.init() so a clean install
@@ -370,7 +382,8 @@ class AppState extends ChangeNotifier {
         for (var i = 0; i < day.exercises.length; i++) {
           updated.add(i == exIndex ? day.exercises[i].copyWith(done: !day.exercises[i].done) : day.exercises[i]);
         }
-        return day.copyWith(exercises: updated);
+        final allDone = updated.isNotEmpty && updated.every((e) => e.done);
+        return day.copyWith(exercises: updated, done: allDone);
       }).toList(),
     );
     storage.writeGym(gym);
