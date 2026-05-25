@@ -311,12 +311,9 @@ class _DismissibleItem extends StatelessWidget {
         message: it.label,
       ),
       onDismissed: (_) => context.read<AppState>().deleteEventItem(event.id, it.id),
-      child: GestureDetector(
-        onLongPress: () => _openEditActualSheet(context),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: _EventItemRow(it: it, event: event),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+        child: _EventItemRow(it: it, event: event, onEdit: () => _openEditActualSheet(context)),
       ),
     );
   }
@@ -388,7 +385,8 @@ class _DismissibleItem extends StatelessWidget {
 class _EventItemRow extends StatelessWidget {
   final EventItem it;
   final PlannedEvent event;
-  const _EventItemRow({required this.it, required this.event});
+  final VoidCallback? onEdit;
+  const _EventItemRow({required this.it, required this.event, this.onEdit});
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
@@ -408,18 +406,31 @@ class _EventItemRow extends StatelessWidget {
             if (it.actual > 0) TextSpan(text: ' · spent $cur${_fmt(it.actual)}', style: TextStyle(fontSize: 11, color: theme.accent)),
           ])),
         ])),
-        Icon(LucideIcons.pencil, size: 14, color: theme.muted),
-        const SizedBox(width: 4),
-        GestureDetector(
-          onTap: () async {
-            final ok = await confirmDelete(context, title: 'Delete checklist item?', message: it.label);
-            if (ok && context.mounted) state.deleteEventItem(event.id, it.id);
+        PopupMenuButton<String>(
+          onSelected: (val) async {
+            if (val == 'edit') {
+              onEdit?.call();
+            } else if (val == 'delete') {
+              final ok = await confirmDelete(context, title: 'Delete checklist item?', message: it.label);
+              if (ok && context.mounted) state.deleteEventItem(event.id, it.id);
+            }
           },
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Icon(LucideIcons.trash2, size: 14, color: theme.danger),
-          ),
+          icon: Icon(LucideIcons.moreVertical, size: 18, color: theme.muted),
+          padding: EdgeInsets.zero,
+          color: theme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          itemBuilder: (_) => [
+            PopupMenuItem(value: 'edit', child: Row(children: [
+              Icon(LucideIcons.pencil, size: 16, color: theme.ink),
+              const SizedBox(width: 10),
+              Text('Log spend', style: TextStyle(color: theme.ink, fontSize: 14)),
+            ])),
+            PopupMenuItem(value: 'delete', child: Row(children: [
+              Icon(LucideIcons.trash2, size: 16, color: theme.danger),
+              const SizedBox(width: 10),
+              Text('Delete', style: TextStyle(color: theme.danger, fontSize: 14)),
+            ])),
+          ],
         ),
       ])),
     );

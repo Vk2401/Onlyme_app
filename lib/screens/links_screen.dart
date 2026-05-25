@@ -160,20 +160,33 @@ class _LinkDismiss extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: theme.muted)),
             ],
           )),
-          GestureDetector(
-            onTap: onEdit, behavior: HitTestBehavior.opaque,
-            child: Padding(padding: const EdgeInsets.all(6), child: Icon(LucideIcons.pencil, size: 15, color: theme.muted)),
-          ),
-          GestureDetector(
-            onTap: () async {
-              final ok = await confirmDelete(context, title: 'Delete link?', message: link.title);
-              if (ok) onDelete();
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Padding(padding: const EdgeInsets.all(6), child: Icon(LucideIcons.trash2, size: 15, color: theme.danger)),
-          ),
-          const SizedBox(width: 2),
           Icon(LucideIcons.externalLink, color: theme.muted, size: 15),
+          PopupMenuButton<String>(
+            onSelected: (val) async {
+              if (val == 'edit') {
+                onEdit();
+              } else if (val == 'delete') {
+                final ok = await confirmDelete(context, title: 'Delete link?', message: link.title);
+                if (ok) onDelete();
+              }
+            },
+            icon: Icon(LucideIcons.moreVertical, size: 18, color: theme.muted),
+            padding: EdgeInsets.zero,
+            color: theme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'edit', child: Row(children: [
+                Icon(LucideIcons.pencil, size: 16, color: theme.ink),
+                const SizedBox(width: 10),
+                Text('Edit', style: TextStyle(color: theme.ink, fontSize: 14)),
+              ])),
+              PopupMenuItem(value: 'delete', child: Row(children: [
+                Icon(LucideIcons.trash2, size: 16, color: theme.danger),
+                const SizedBox(width: 10),
+                Text('Delete', style: TextStyle(color: theme.danger, fontSize: 14)),
+              ])),
+            ],
+          ),
         ])),
       ),
     );

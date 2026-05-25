@@ -290,12 +290,9 @@ class _DismissibleDebt extends StatelessWidget {
         message: debt.person,
       ),
       onDismissed: (_) => onDelete(),
-      child: GestureDetector(
-        onLongPress: onEdit,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: _DebtCard(debt: debt, theme: theme, onPay: onPay, onEdit: onEdit, onDelete: onDelete),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+        child: _DebtCard(debt: debt, theme: theme, onPay: onPay, onEdit: onEdit, onDelete: onDelete),
       ),
     );
   }
@@ -330,25 +327,6 @@ class _DebtCard extends StatelessWidget {
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Flexible(child: Text(debt.person, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.2), overflow: TextOverflow.ellipsis)),
             Row(children: [
-              GestureDetector(
-                onTap: onEdit,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Icon(LucideIcons.pencil, size: 15, color: theme.muted),
-                ),
-              ),
-              GestureDetector(
-                onTap: () async {
-                  final ok = await confirmDelete(context, title: 'Delete debt?', message: debt.person);
-                  if (ok) onDelete();
-                },
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Icon(LucideIcons.trash2, size: 15, color: theme.danger),
-                ),
-              ),
               Text(
                 debt.settled ? 'Settled' : '$cur${_fmt(debt.remain)}',
                 style: TextStyle(
@@ -356,6 +334,32 @@ class _DebtCard extends StatelessWidget {
                   color: debt.settled ? theme.muted : theme.ink,
                   decoration: debt.settled ? TextDecoration.lineThrough : null,
                 ),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (val) async {
+                  if (val == 'edit') {
+                    onEdit();
+                  } else if (val == 'delete') {
+                    final ok = await confirmDelete(context, title: 'Delete debt?', message: debt.person);
+                    if (ok) onDelete();
+                  }
+                },
+                icon: Icon(LucideIcons.moreVertical, size: 18, color: theme.muted),
+                padding: EdgeInsets.zero,
+                color: theme.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: 'edit', child: Row(children: [
+                    Icon(LucideIcons.pencil, size: 16, color: theme.ink),
+                    const SizedBox(width: 10),
+                    Text('Edit', style: TextStyle(color: theme.ink, fontSize: 14)),
+                  ])),
+                  PopupMenuItem(value: 'delete', child: Row(children: [
+                    Icon(LucideIcons.trash2, size: 16, color: theme.danger),
+                    const SizedBox(width: 10),
+                    Text('Delete', style: TextStyle(color: theme.danger, fontSize: 14)),
+                  ])),
+                ],
               ),
             ]),
           ]),

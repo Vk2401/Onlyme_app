@@ -9,7 +9,8 @@ class TaskCardWidget extends StatelessWidget {
   final TaskItem task;
   final AppTheme theme;
   final VoidCallback onToggle;
-  const TaskCardWidget({super.key, required this.task, required this.theme, required this.onToggle});
+  final Widget? trailing;
+  const TaskCardWidget({super.key, required this.task, required this.theme, required this.onToggle, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +52,7 @@ class TaskCardWidget extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           CheckBubble(checked: task.done, onTap: onToggle, theme: theme),
+          if (trailing != null) ...[const SizedBox(width: 2), trailing!],
         ]),
       ),
     );

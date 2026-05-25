@@ -131,16 +131,33 @@ class _NoteDismiss extends StatelessWidget {
                       maxLines: 3, overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 13, color: theme.ink2, height: 1.4)),
               ])),
-              GestureDetector(
-                onTap: () async {
-                  final ok = await confirmDelete(context,
-                      title: 'Delete note?',
-                      message: note.title.isEmpty ? note.body : note.title);
-                  if (ok) onDelete();
+              PopupMenuButton<String>(
+                onSelected: (val) async {
+                  if (val == 'edit') {
+                    onTap();
+                  } else if (val == 'delete') {
+                    final ok = await confirmDelete(context,
+                        title: 'Delete note?',
+                        message: note.title.isEmpty ? note.body : note.title);
+                    if (ok) onDelete();
+                  }
                 },
-                behavior: HitTestBehavior.opaque,
-                child: Padding(padding: const EdgeInsets.only(left: 8),
-                    child: Icon(LucideIcons.trash2, size: 15, color: theme.danger)),
+                icon: Icon(LucideIcons.moreVertical, size: 18, color: theme.muted),
+                padding: EdgeInsets.zero,
+                color: theme.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: 'edit', child: Row(children: [
+                    Icon(LucideIcons.pencil, size: 16, color: theme.ink),
+                    const SizedBox(width: 10),
+                    Text('Edit', style: TextStyle(color: theme.ink, fontSize: 14)),
+                  ])),
+                  PopupMenuItem(value: 'delete', child: Row(children: [
+                    Icon(LucideIcons.trash2, size: 16, color: theme.danger),
+                    const SizedBox(width: 10),
+                    Text('Delete', style: TextStyle(color: theme.danger, fontSize: 14)),
+                  ])),
+                ],
               ),
             ]),
             const SizedBox(height: 8),

@@ -221,11 +221,36 @@ class _DismissibleTask extends StatelessWidget {
         message: task.title,
       ),
       onDismissed: (_) => onDelete(),
-      child: GestureDetector(
-        onLongPress: onEdit,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: TaskCardWidget(task: task, theme: theme, onToggle: onToggle),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+        child: TaskCardWidget(
+          task: task, theme: theme, onToggle: onToggle,
+          trailing: PopupMenuButton<String>(
+            onSelected: (val) async {
+              if (val == 'edit') {
+                onEdit();
+              } else if (val == 'delete') {
+                final ok = await confirmDelete(context, title: 'Delete task?', message: task.title);
+                if (ok) onDelete();
+              }
+            },
+            icon: Icon(LucideIcons.moreVertical, size: 18, color: theme.muted),
+            padding: EdgeInsets.zero,
+            color: theme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'edit', child: Row(children: [
+                Icon(LucideIcons.pencil, size: 16, color: theme.ink),
+                const SizedBox(width: 10),
+                Text('Edit', style: TextStyle(color: theme.ink, fontSize: 14)),
+              ])),
+              PopupMenuItem(value: 'delete', child: Row(children: [
+                Icon(LucideIcons.trash2, size: 16, color: theme.danger),
+                const SizedBox(width: 10),
+                Text('Delete', style: TextStyle(color: theme.danger, fontSize: 14)),
+              ])),
+            ],
+          ),
         ),
       ),
     );
