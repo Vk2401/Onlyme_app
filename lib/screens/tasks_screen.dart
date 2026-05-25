@@ -225,23 +225,7 @@ class _DismissibleTask extends StatelessWidget {
         onLongPress: onEdit,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: Stack(children: [
-            TaskCardWidget(task: task, theme: theme, onToggle: onToggle),
-            Positioned(
-              top: 6, right: 6,
-              child: GestureDetector(
-                onTap: () async {
-                  final ok = await confirmDelete(context, title: 'Delete task?', message: task.title);
-                  if (ok) onDelete();
-                },
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Icon(LucideIcons.trash2, size: 14, color: theme.danger.withOpacity(0.7)),
-                ),
-              ),
-            ),
-          ]),
+          child: TaskCardWidget(task: task, theme: theme, onToggle: onToggle),
         ),
       ),
     );
