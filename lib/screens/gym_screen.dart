@@ -658,20 +658,22 @@ class _ExerciseRow extends StatelessWidget {
               decoration: BoxDecoration(color: theme.surface2, borderRadius: BorderRadius.circular(10)),
               child: Text(ex.weight, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.ink)),
             ),
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: onEdit,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.pencil, size: 14, color: theme.muted)),
+            const SizedBox(width: 2),
+            IconButton(
+              onPressed: onEdit,
+              icon: Icon(LucideIcons.pencil, size: 16, color: theme.muted),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
-            GestureDetector(
-              onTap: () async {
+            IconButton(
+              onPressed: () async {
                 final ok = await confirmDelete(context,
                     title: 'Delete exercise?', message: '${ex.name} · ${ex.sets}×${ex.reps}');
                 if (ok) onDelete();
               },
-              behavior: HitTestBehavior.opaque,
-              child: Padding(padding: const EdgeInsets.all(5), child: Icon(LucideIcons.trash2, size: 14, color: theme.danger)),
+              icon: Icon(LucideIcons.trash2, size: 16, color: theme.danger),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
           ]),
 
