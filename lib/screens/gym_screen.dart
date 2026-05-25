@@ -190,6 +190,7 @@ class _GymScreenState extends State<GymScreen> {
           for (var i = 0; i < day.exercises.length; i++)
             _DismissibleExercise(
               ex: day.exercises[i],
+              index: i,
               theme: theme,
               onToggle: () => state.toggleExercise(day.id, i),
               onEdit: () => _openExerciseSheet(context, theme, dayId: day.id, exIndex: i, ex: day.exercises[i]),
@@ -593,11 +594,12 @@ class _GymScreenState extends State<GymScreen> {
 
 class _DismissibleExercise extends StatelessWidget {
   final Exercise ex;
+  final int index;
   final AppTheme theme;
   final VoidCallback onToggle;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _DismissibleExercise({required this.ex, required this.theme, required this.onToggle, required this.onEdit, required this.onDelete});
+  const _DismissibleExercise({required this.ex, required this.index, required this.theme, required this.onToggle, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -619,19 +621,44 @@ class _DismissibleExercise extends StatelessWidget {
       onDismissed: (_) => onDelete(),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-        child: _ExerciseRow(ex: ex, onToggle: onToggle, onEdit: onEdit, onDelete: onDelete, theme: theme),
+        child: _ExerciseRow(ex: ex, index: index, onToggle: onToggle, onEdit: onEdit, onDelete: onDelete, theme: theme),
       ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final AppTheme theme;
+  final bool accent;
+  const _StatChip({required this.label, required this.value, required this.theme, this.accent = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = accent ? theme.accent.withOpacity(0.12) : theme.surface2;
+    final fg = accent ? theme.accent : theme.muted;
+    final valueFg = accent ? theme.accent : theme.ink;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: fg, letterSpacing: 0.2)),
+        const SizedBox(width: 4),
+        Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: valueFg)),
+      ]),
     );
   }
 }
 
 class _ExerciseRow extends StatelessWidget {
   final Exercise ex;
+  final int index;
   final VoidCallback onToggle;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final AppTheme theme;
-  const _ExerciseRow({required this.ex, required this.onToggle, required this.onEdit, required this.onDelete, required this.theme});
+  const _ExerciseRow({required this.ex, required this.index, required this.onToggle, required this.onEdit, required this.onDelete, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -640,83 +667,145 @@ class _ExerciseRow extends StatelessWidget {
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 250),
-      opacity: ex.done ? 0.55 : 1,
+      opacity: ex.done ? 0.5 : 1,
       child: AppCard(
         theme: theme,
-        pad: 14,
+        pad: 0,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            CheckBubble(checked: ex.done, onTap: onToggle, theme: theme),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              Text(ex.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.2, decoration: ex.done ? TextDecoration.lineThrough : null)),
-              const SizedBox(height: 3),
-              Text('${ex.sets} sets × ${ex.reps}', style: TextStyle(fontSize: 12, color: theme.muted)),
-            ])),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: theme.surface2, borderRadius: BorderRadius.circular(10)),
-              child: Text(ex.weight, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.ink)),
-            ),
-            const SizedBox(width: 2),
-            IconButton(
-              onPressed: onEdit,
-              icon: Icon(LucideIcons.pencil, size: 16, color: theme.muted),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            ),
-            IconButton(
-              onPressed: () async {
-                final ok = await confirmDelete(context,
-                    title: 'Delete exercise?', message: '${ex.name} · ${ex.sets}×${ex.reps}');
-                if (ok) onDelete();
-              },
-              icon: Icon(LucideIcons.trash2, size: 16, color: theme.danger),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            ),
-          ]),
-
-          // Tutorial image (shown below when imagePath is set)
-          if (hasImage) ...[
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.file(
-                File(ex.imagePath!),
-                height: 160,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 48,
-                  decoration: BoxDecoration(color: theme.surface2, borderRadius: BorderRadius.circular(10)),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(LucideIcons.imageOff, size: 16, color: theme.muted),
-                    const SizedBox(width: 6),
-                    Text('Image unavailable', style: TextStyle(fontSize: 12, color: theme.muted)),
+          // Main row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 6, 14),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              // Numbered circle / checkmark
+              GestureDetector(
+                onTap: onToggle,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: ex.done ? theme.accent : theme.accent.withOpacity(0.12),
+                    border: ex.done ? null : Border.all(color: theme.accent.withOpacity(0.35), width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: ex.done
+                      ? const Icon(LucideIcons.check, size: 18, color: Colors.white)
+                      : Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: theme.accent,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Name + stat chips
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text(
+                    ex.name,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: theme.ink,
+                      letterSpacing: -0.2,
+                      decoration: ex.done ? TextDecoration.lineThrough : null,
+                      decorationColor: theme.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(spacing: 6, runSpacing: 4, children: [
+                    _StatChip(label: 'SETS', value: '${ex.sets}', theme: theme),
+                    _StatChip(label: 'REPS', value: ex.reps, theme: theme),
+                    _StatChip(label: 'WT', value: ex.weight, theme: theme, accent: true),
                   ]),
+                ]),
+              ),
+              // Popup menu
+              PopupMenuButton<String>(
+                onSelected: (val) async {
+                  if (val == 'edit') {
+                    onEdit();
+                  } else if (val == 'delete') {
+                    final ok = await confirmDelete(context,
+                        title: 'Delete exercise?', message: '${ex.name} · ${ex.sets}×${ex.reps}');
+                    if (ok) onDelete();
+                  }
+                },
+                icon: Icon(LucideIcons.moreVertical, size: 18, color: theme.muted),
+                padding: EdgeInsets.zero,
+                color: theme.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(children: [
+                      Icon(LucideIcons.pencil, size: 16, color: theme.ink),
+                      const SizedBox(width: 10),
+                      Text('Edit', style: TextStyle(color: theme.ink, fontSize: 14)),
+                    ]),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      Icon(LucideIcons.trash2, size: 16, color: theme.danger),
+                      const SizedBox(width: 10),
+                      Text('Delete', style: TextStyle(color: theme.danger, fontSize: 14)),
+                    ]),
+                  ),
+                ],
+              ),
+            ]),
+          ),
+
+          // Tutorial image
+          if (hasImage) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  File(ex.imagePath!),
+                  height: 160,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 48,
+                    decoration: BoxDecoration(color: theme.surface2, borderRadius: BorderRadius.circular(10)),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(LucideIcons.imageOff, size: 16, color: theme.muted),
+                      const SizedBox(width: 6),
+                      Text('Image unavailable', style: TextStyle(fontSize: 12, color: theme.muted)),
+                    ]),
+                  ),
                 ),
               ),
             ),
           ],
 
-          // Tutorial link button (shown when tutorialLink is set)
+          // Tutorial link
           if (hasLink) ...[
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => launchUrl(Uri.parse(ex.tutorialLink!), mode: LaunchMode.externalApplication),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: theme.accent.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: theme.accent.withOpacity(0.3)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: GestureDetector(
+                onTap: () => launchUrl(Uri.parse(ex.tutorialLink!), mode: LaunchMode.externalApplication),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: theme.accent.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: theme.accent.withOpacity(0.3)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(LucideIcons.playCircle, size: 16, color: theme.accent),
+                    const SizedBox(width: 8),
+                    Text('Watch tutorial', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.accent)),
+                  ]),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(LucideIcons.playCircle, size: 16, color: theme.accent),
-                  const SizedBox(width: 8),
-                  Text('Watch tutorial', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.accent)),
-                ]),
               ),
             ),
           ],
