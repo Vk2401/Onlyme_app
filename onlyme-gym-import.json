@@ -1,0 +1,246 @@
+{
+  "app": "onlyme",
+  "version": 1,
+  "exportedAt": "2026-05-26T00:00:00.000",
+  "data": {
+    "gym": {
+      "name": "Advanced 2-Week Split",
+      "days": [
+        {
+          "id": 1,
+          "short": "W1D1",
+          "label": "Chest + Biceps",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Bench Press",       "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Incline DB Press",  "sets": 4, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Cable Fly",         "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Pushups",           "sets": 4, "reps": "AMRAP",  "weight": "BW", "done": false},
+            {"name": "Barbell Curl",      "sets": 3, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Incline Curl",      "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Hammer Curl",       "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Cardio",            "sets": 1, "reps": "20-25 min", "weight": "Treadmill 6km/h 10% / Cycling / FM300", "done": false}
+          ]
+        },
+        {
+          "id": 2,
+          "short": "W1D2",
+          "label": "Back + Triceps",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Lat Pulldown",       "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Seated Row",         "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Deadlift",           "sets": 4, "reps": "5-6",    "weight": "", "done": false},
+            {"name": "Single Arm DB Row",  "sets": 4, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Rope Pushdown",      "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Skull Crushers",     "sets": 3, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Dips",              "sets": 3, "reps": "AMRAP",  "weight": "BW", "done": false},
+            {"name": "Cardio",            "sets": 1, "reps": "20 min", "weight": "Cycling moderate / Treadmill intervals", "done": false}
+          ]
+        },
+        {
+          "id": 3,
+          "short": "W1D3",
+          "label": "Shoulder + Legs",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Barbell Shoulder Press", "sets": 4, "reps": "6-8",   "weight": "", "done": false},
+            {"name": "Side Raises",            "sets": 4, "reps": "15-20", "weight": "", "done": false},
+            {"name": "Rear Delt Fly",          "sets": 4, "reps": "15-20", "weight": "", "done": false},
+            {"name": "Shrugs",                 "sets": 4, "reps": "12-15", "weight": "", "done": false},
+            {"name": "Squats",                 "sets": 3, "reps": "8-10",  "weight": "", "done": false},
+            {"name": "Leg Press",              "sets": 3, "reps": "10-12", "weight": "", "done": false},
+            {"name": "Hamstring Curl",         "sets": 3, "reps": "12-15", "weight": "", "done": false},
+            {"name": "Cardio",                 "sets": 1, "reps": "25 min","weight": "Incline Walk 6km/h 12% / FM300", "done": false}
+          ]
+        },
+        {
+          "id": 4,
+          "short": "W1D4",
+          "label": "Biceps + Chest",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Barbell Curl",   "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Preacher Curl",  "sets": 4, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Incline Curl",   "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Hammer Curl",    "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Incline Press",  "sets": 3, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Cable Fly",      "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Pushups",        "sets": 3, "reps": "AMRAP",  "weight": "BW", "done": false},
+            {"name": "Cardio",         "sets": 1, "reps": "20 min", "weight": "Cycling HIIT / Stair incline walk", "done": false}
+          ]
+        },
+        {
+          "id": 5,
+          "short": "W1D5",
+          "label": "Triceps + Back",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Rope Pushdown",    "sets": 4, "reps": "12-15", "weight": "", "done": false},
+            {"name": "Skull Crushers",   "sets": 4, "reps": "10-12", "weight": "", "done": false},
+            {"name": "Close Grip Bench", "sets": 4, "reps": "8-10",  "weight": "", "done": false},
+            {"name": "Dips",             "sets": 4, "reps": "AMRAP", "weight": "BW", "done": false},
+            {"name": "Lat Pulldown",     "sets": 3, "reps": "8-10",  "weight": "", "done": false},
+            {"name": "Seated Row",       "sets": 3, "reps": "8-10",  "weight": "", "done": false},
+            {"name": "Deadlift",         "sets": 3, "reps": "5-6",   "weight": "", "done": false},
+            {"name": "Cardio",           "sets": 1, "reps": "20 min","weight": "Treadmill incline / Cycling endurance", "done": false}
+          ]
+        },
+        {
+          "id": 6,
+          "short": "W1D6",
+          "label": "Legs + Shoulder",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Squats",        "sets": 4, "reps": "6-8",   "weight": "", "done": false},
+            {"name": "Leg Press",     "sets": 4, "reps": "10-12", "weight": "", "done": false},
+            {"name": "Hamstring Curl","sets": 4, "reps": "12-15", "weight": "", "done": false},
+            {"name": "Calf Raises",   "sets": 4, "reps": "15-20", "weight": "", "done": false},
+            {"name": "Side Raises",   "sets": 3, "reps": "15-20", "weight": "", "done": false},
+            {"name": "Rear Delt Fly", "sets": 3, "reps": "15-20", "weight": "", "done": false},
+            {"name": "Shrugs",        "sets": 3, "reps": "12-15", "weight": "", "done": false},
+            {"name": "Cardio",        "sets": 1, "reps": "25 min","weight": "FM300 Spin / Treadmill 6km/h 10%", "done": false}
+          ]
+        },
+        {
+          "id": 7,
+          "short": "REST",
+          "label": "Rest Day",
+          "today": false,
+          "done": false,
+          "isRest": true,
+          "exercises": []
+        },
+        {
+          "id": 8,
+          "short": "W2D1",
+          "label": "Chest + Biceps (Var.)",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Decline Press",       "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Machine Press",       "sets": 4, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Pec Deck",            "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Incline Pushups",     "sets": 4, "reps": "AMRAP",  "weight": "BW", "done": false},
+            {"name": "EZ Bar Curl",         "sets": 3, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Cable Curl",          "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Concentration Curl",  "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Cardio",              "sets": 1, "reps": "20 min", "weight": "Treadmill incline / Cycling moderate", "done": false}
+          ]
+        },
+        {
+          "id": 9,
+          "short": "W2D2",
+          "label": "Back + Triceps (Var.)",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Pullups",               "sets": 4, "reps": "AMRAP",  "weight": "BW", "done": false},
+            {"name": "T-Bar Row",             "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Straight Arm Pulldown", "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Rack Pull",             "sets": 4, "reps": "5-6",    "weight": "", "done": false},
+            {"name": "Overhead Extension",    "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Bench Dips",            "sets": 3, "reps": "AMRAP",  "weight": "BW", "done": false},
+            {"name": "Rope Pushdown",         "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Cardio",                "sets": 1, "reps": "20 min", "weight": "Cycling HIIT / FM300 sprint x12", "done": false}
+          ]
+        },
+        {
+          "id": 10,
+          "short": "W2D3",
+          "label": "Shoulder + Legs (Var.)",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Arnold Press",         "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Cable Lateral Raise",  "sets": 4, "reps": "15-20",  "weight": "", "done": false},
+            {"name": "Face Pull",            "sets": 4, "reps": "15-20",  "weight": "", "done": false},
+            {"name": "Upright Row",          "sets": 4, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Front Squat",          "sets": 3, "reps": "6-8",    "weight": "", "done": false},
+            {"name": "Walking Lunges",       "sets": 3, "reps": "12/leg", "weight": "BW", "done": false},
+            {"name": "Leg Curl",             "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Cardio",               "sets": 1, "reps": "25 min", "weight": "Incline walk / Spin steady", "done": false}
+          ]
+        },
+        {
+          "id": 11,
+          "short": "W2D4",
+          "label": "Biceps + Chest (Var.)",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Spider Curl",          "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Cable Curl",           "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Reverse Curl",         "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Incline Curl",         "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Flat DB Press",        "sets": 3, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Cable Fly Low",        "sets": 3, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Chest Press Machine",  "sets": 3, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Cardio",               "sets": 1, "reps": "20 min", "weight": "Cycling endurance", "done": false}
+          ]
+        },
+        {
+          "id": 12,
+          "short": "W2D5",
+          "label": "Triceps + Back (Var.)",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Skull Crushers",   "sets": 4, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Close Grip Bench", "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Rope Extension",   "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Kickbacks",        "sets": 4, "reps": "12-15",  "weight": "", "done": false},
+            {"name": "Pullups",          "sets": 3, "reps": "AMRAP",  "weight": "BW", "done": false},
+            {"name": "T-Bar Row",        "sets": 3, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Seated Row",       "sets": 3, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Cardio",           "sets": 1, "reps": "20 min", "weight": "Treadmill intervals / FM300 HIIT", "done": false}
+          ]
+        },
+        {
+          "id": 13,
+          "short": "W2D6",
+          "label": "Legs + Shoulder (Var.)",
+          "today": false,
+          "done": false,
+          "isRest": false,
+          "exercises": [
+            {"name": "Romanian Deadlift",     "sets": 4, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Bulgarian Split Squat", "sets": 4, "reps": "10/leg", "weight": "", "done": false},
+            {"name": "Leg Press",             "sets": 4, "reps": "10-12",  "weight": "", "done": false},
+            {"name": "Calf Raises",           "sets": 4, "reps": "15-20",  "weight": "", "done": false},
+            {"name": "Arnold Press",          "sets": 3, "reps": "8-10",   "weight": "", "done": false},
+            {"name": "Lateral Raise",         "sets": 3, "reps": "15-20",  "weight": "", "done": false},
+            {"name": "Face Pull",             "sets": 3, "reps": "15-20",  "weight": "", "done": false},
+            {"name": "Cardio",                "sets": 1, "reps": "20-25 min","weight": "Incline walk / Spin steady", "done": false}
+          ]
+        },
+        {
+          "id": 14,
+          "short": "REST",
+          "label": "Rest Day",
+          "today": false,
+          "done": false,
+          "isRest": true,
+          "exercises": []
+        }
+      ]
+    }
+  }
+}
