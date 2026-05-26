@@ -192,9 +192,9 @@ class _GymScreenState extends State<GymScreen> {
                     isToday: i == todayIdx,
                     theme: theme,
                     onTap: () => setState(() => _dayIdx = currentWeekIdx * 7 + i),
-                    overrideShort: isMultiWeek
-                        ? (visibleDays[i].isRest ? 'REST' : 'D${i + 1}')
-                        : null,
+                    overrideShort: visibleDays[i].isRest
+                        ? 'Rest'
+                        : const ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i % 7],
                   ),
                 )),
             ]),
