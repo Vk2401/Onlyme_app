@@ -8,7 +8,7 @@ class BottomNav extends StatelessWidget {
   final ValueChanged<String> onChange;
   final AppTheme theme;
 
-  static const moreKeys = ['gym', 'snapshots', 'skincare', 'notes', 'links', 'vault', 'profile', 'events', 'more'];
+  static const moreKeys = ['tasks', 'snapshots', 'skincare', 'notes', 'links', 'vault', 'profile', 'events', 'more'];
 
   const BottomNav({super.key, required this.active, required this.onChange, required this.theme});
 
@@ -16,7 +16,7 @@ class BottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _NavItem('home', 'Home', LucideIcons.home),
-      _NavItem('tasks', 'Tasks', LucideIcons.checkCircle),
+      _NavItem('gym', 'Workout', LucideIcons.dumbbell),
       _NavItem('add', '', LucideIcons.plus, fab: true),
       _NavItem('finance', 'Finance', LucideIcons.wallet),
       _NavItem('more', 'More', LucideIcons.moreHorizontal),
