@@ -89,6 +89,15 @@ class AppState extends ChangeNotifier {
       await s.writeGymLastResetDay(dayKey);
     }
 
+    // Daily task reset: un-complete allDay tasks at the start of each new day
+    if (s.readTasksLastResetDay() != dayKey) {
+      state.tasks = state.tasks
+          .map((t) => t.allDay ? t.copyWith(done: false) : t)
+          .toList();
+      await s.writeTasks(state.tasks);
+      await s.writeTasksLastResetDay(dayKey);
+    }
+
     return state;
   }
 
@@ -108,12 +117,14 @@ class AppState extends ChangeNotifier {
     final svc = NotificationsService.instance;
     final now = DateTime.now();
     for (final t in tasks) {
-      if (!t.done && t.scheduledAt != null && t.scheduledAt!.isAfter(now)) {
+      if (t.done || t.scheduledAt == null) continue;
+      final at = _nextFireTime(t, now);
+      if (at != null) {
         await svc.scheduleTask(
           id: t.id,
           title: t.title,
           body: t.cat.isEmpty ? null : t.cat,
-          at: t.scheduledAt!,
+          at: at,
           isAlarm: t.isAlarm,
         );
       }
@@ -160,11 +171,13 @@ class AppState extends ChangeNotifier {
     required Color color,
     DateTime? scheduledAt,
     bool isAlarm = false,
+    bool allDay = false,
   }) {
     final id = DateTime.now().millisecondsSinceEpoch;
     final task = TaskItem(
       id: id, title: title, time: time, cat: cat, icon: icon, color: color,
       done: false, streak: 0, scheduledAt: scheduledAt, isAlarm: isAlarm,
+      allDay: allDay,
     );
     tasks = [...tasks, task];
     storage.writeTasks(tasks);
@@ -201,13 +214,32 @@ class AppState extends ChangeNotifier {
       svc.cancelTask(t.id);
       return;
     }
+    final at = _nextFireTime(t, DateTime.now());
+    if (at == null) {
+      svc.cancelTask(t.id);
+      return;
+    }
     svc.scheduleTask(
       id: t.id,
       title: t.title,
       body: t.cat.isEmpty ? null : t.cat,
-      at: t.scheduledAt!,
+      at: at,
       isAlarm: t.isAlarm,
     );
+  }
+
+  /// Returns the next DateTime a task notification should fire.
+  /// For allDay tasks, always resolves to today (or tomorrow if already past).
+  /// For one-time tasks, returns scheduledAt as-is (null if already past).
+  static DateTime? _nextFireTime(TaskItem t, DateTime now) {
+    if (t.scheduledAt == null) return null;
+    if (t.allDay) {
+      var candidate = DateTime(now.year, now.month, now.day,
+          t.scheduledAt!.hour, t.scheduledAt!.minute);
+      if (!candidate.isAfter(now)) candidate = candidate.add(const Duration(days: 1));
+      return candidate;
+    }
+    return t.scheduledAt!.isAfter(now) ? t.scheduledAt : null;
   }
 
   // --- Debts CRUD ---

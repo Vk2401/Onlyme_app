@@ -37,6 +37,12 @@ class TaskCardWidget extends StatelessWidget {
                 )),
                 const SizedBox(height: 3),
                 Row(children: [
+                  if (task.allDay) ...[
+                    Icon(LucideIcons.repeat, size: 11, color: theme.accent),
+                    const SizedBox(width: 3),
+                    Text('Daily', style: TextStyle(fontSize: 12, color: theme.accent, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 6),
+                  ],
                   Icon(LucideIcons.clock, size: 11, color: theme.muted),
                   const SizedBox(width: 3),
                   Text(task.time, style: TextStyle(fontSize: 12, color: theme.muted)),

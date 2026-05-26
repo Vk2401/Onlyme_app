@@ -274,6 +274,7 @@ class _TaskSheetState extends State<_TaskSheet> {
   late Color _color;
   DateTime? _scheduledAt;
   bool _isAlarm = false;
+  bool _allDay = false;
 
   @override
   void initState() {
@@ -285,6 +286,7 @@ class _TaskSheetState extends State<_TaskSheet> {
     _color = t?.color ?? _colorPalette[0];
     _scheduledAt = t?.scheduledAt;
     _isAlarm = t?.isAlarm ?? false;
+    _allDay = t?.allDay ?? false;
   }
 
   @override
@@ -326,10 +328,23 @@ class _TaskSheetState extends State<_TaskSheet> {
             _Field(theme: theme, hint: 'Category (optional)', controller: _cat),
             const SizedBox(height: 10),
 
-            // Optional reminder (date + time picker)
+            // All-day / one-time toggle
+            _AllDayToggleRow(
+              theme: theme,
+              value: _allDay,
+              onChanged: (v) => setState(() {
+                _allDay = v;
+                _scheduledAt = null;
+                _isAlarm = false;
+              }),
+            ),
+            const SizedBox(height: 10),
+
+            // Reminder — date+time for one-time; time-only for allDay
             _ReminderRow(
               theme: theme,
               value: _scheduledAt,
+              allDay: _allDay,
               onChange: (v) => setState(() {
                 _scheduledAt = v;
                 if (v == null) _isAlarm = false;
@@ -440,26 +455,29 @@ class _TaskSheetState extends State<_TaskSheet> {
   void _submit() {
     if (_title.text.trim().isEmpty) return;
     final state = context.read<AppState>();
+    final timeLabel = _scheduledAt != null ? _formatClock(_scheduledAt!) : 'All day';
     if (widget.task != null) {
       state.editTask(widget.task!.copyWith(
         title: _title.text.trim(),
-        time: _scheduledAt != null ? _formatClock(_scheduledAt!) : (widget.task?.time ?? 'All day'),
+        time: timeLabel,
         cat: _cat.text.trim(),
         icon: _icon,
         color: _color,
         scheduledAt: _scheduledAt,
         clearScheduledAt: _scheduledAt == null,
         isAlarm: _isAlarm,
+        allDay: _allDay,
       ));
     } else {
       state.addTask(
         title: _title.text.trim(),
-        time: _scheduledAt != null ? _formatClock(_scheduledAt!) : 'All day',
+        time: timeLabel,
         cat: _cat.text.trim().isEmpty ? 'Personal' : _cat.text.trim(),
         icon: _icon,
         color: _color,
         scheduledAt: _scheduledAt,
         isAlarm: _isAlarm,
+        allDay: _allDay,
       );
     }
     Navigator.of(context).pop();
@@ -469,14 +487,15 @@ class _TaskSheetState extends State<_TaskSheet> {
 class _ReminderRow extends StatelessWidget {
   final AppTheme theme;
   final DateTime? value;
+  final bool allDay;
   final ValueChanged<DateTime?> onChange;
-  const _ReminderRow({required this.theme, required this.value, required this.onChange});
+  const _ReminderRow({required this.theme, required this.value, required this.onChange, this.allDay = false});
 
   @override
   Widget build(BuildContext context) {
     final label = value == null
-        ? 'No reminder'
-        : _formatReminder(value!);
+        ? (allDay ? 'No daily reminder' : 'No reminder')
+        : (allDay ? _formatClock(value!) : _formatReminder(value!));
     return GestureDetector(
       onTap: () => _pick(context),
       behavior: HitTestBehavior.opaque,
@@ -510,10 +529,21 @@ class _ReminderRow extends StatelessWidget {
 
   Future<void> _pick(BuildContext context) async {
     final now = DateTime.now();
-    final initialDate = value ?? now.add(const Duration(hours: 1));
+    final initial = value ?? now.add(const Duration(hours: 1));
+    if (allDay) {
+      // Time-only picker for daily tasks
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(initial),
+      );
+      if (time == null) return;
+      // Store as today's date + picked time; _rescheduleTask computes next occurrence
+      onChange(DateTime(now.year, now.month, now.day, time.hour, time.minute));
+      return;
+    }
     final date = await showDatePicker(
       context: context,
-      initialDate: initialDate.isBefore(now) ? now : initialDate,
+      initialDate: initial.isBefore(now) ? now : initial,
       firstDate: now,
       lastDate: DateTime(now.year + 5),
     );
@@ -521,10 +551,60 @@ class _ReminderRow extends StatelessWidget {
     if (!context.mounted) return;
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(initialDate),
+      initialTime: TimeOfDay.fromDateTime(initial),
     );
     if (time == null) return;
     onChange(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+}
+
+class _AllDayToggleRow extends StatelessWidget {
+  final AppTheme theme;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _AllDayToggleRow({required this.theme, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: value ? theme.accent.withOpacity(0.1) : theme.bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: value ? theme.accent.withOpacity(0.4) : Colors.transparent),
+        ),
+        child: Row(children: [
+          Icon(LucideIcons.repeat, size: 18, color: value ? theme.accent : theme.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Text('Repeat every day', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+                color: value ? theme.accent : theme.ink)),
+            Text('Resets automatically each morning',
+                style: TextStyle(fontSize: 11, color: theme.muted)),
+          ])),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 40, height: 22,
+            decoration: BoxDecoration(
+              color: value ? theme.accent : theme.rule,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Stack(children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                left: value ? 20 : 2, top: 2,
+                child: Container(width: 18, height: 18, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

@@ -11,6 +11,7 @@ class TaskItem {
   final int streak;
   final DateTime? scheduledAt;
   final bool isAlarm;
+  final bool allDay;
 
   const TaskItem({
     required this.id,
@@ -23,6 +24,7 @@ class TaskItem {
     required this.streak,
     this.scheduledAt,
     this.isAlarm = false,
+    this.allDay = false,
   });
 
   TaskItem copyWith({
@@ -36,6 +38,7 @@ class TaskItem {
     DateTime? scheduledAt,
     bool clearScheduledAt = false,
     bool? isAlarm,
+    bool? allDay,
   }) =>
       TaskItem(
         id: id,
@@ -48,6 +51,7 @@ class TaskItem {
         streak: streak ?? this.streak,
         scheduledAt: clearScheduledAt ? null : (scheduledAt ?? this.scheduledAt),
         isAlarm: isAlarm ?? this.isAlarm,
+        allDay: allDay ?? this.allDay,
       );
 
   Map<String, dynamic> toJson() => {
@@ -61,6 +65,7 @@ class TaskItem {
         'streak': streak,
         'scheduledAt': scheduledAt?.toIso8601String(),
         'isAlarm': isAlarm,
+        'allDay': allDay,
       };
 
   factory TaskItem.fromJson(Map<String, dynamic> j) => TaskItem(
@@ -76,5 +81,6 @@ class TaskItem {
             ? DateTime.tryParse(j['scheduledAt'] as String)
             : null,
         isAlarm: j['isAlarm'] as bool? ?? false,
+        allDay: j['allDay'] as bool? ?? false,
       );
 }
