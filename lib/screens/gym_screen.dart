@@ -67,7 +67,7 @@ void _gymOpenExerciseSheet(BuildContext context, {required int dayId, int? exInd
               name: nameCtrl.text.trim(), sets: sets,
               reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
               weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
-              done: ex!.done, imagePath: pickedImagePath, tutorialLink: link,
+              done: ex.done, imagePath: pickedImagePath, tutorialLink: link,
             ));
           } else {
             state.addExercise(dayId,
