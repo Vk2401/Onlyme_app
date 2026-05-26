@@ -119,8 +119,15 @@ class _GymScreenState extends State<GymScreen> {
     final pct = day.exercises.isEmpty
         ? 0.0
         : day.exercises.where((e) => e.done).length / day.exercises.length;
-    final weekDone = plan.days.where((x) => x.done).length;
-    final activeDays = plan.days.where((x) => !x.isRest).length;
+    final isMultiWeek = plan.days.length > 7;
+    final weekCount   = isMultiWeek ? (plan.days.length / 7).ceil() : 1;
+    final currentWeekIdx = isMultiWeek ? _dayIdx ~/ 7 : 0;
+    final weekStart   = currentWeekIdx * 7;
+    final weekEnd     = (weekStart + 7).clamp(0, plan.days.length);
+    final visibleDays = plan.days.sublist(weekStart, weekEnd);
+    final dayInWeekIdx = _dayIdx - weekStart;
+    final weekDone    = visibleDays.where((x) => x.done).length;
+    final activeDays  = visibleDays.where((x) => !x.isRest).length;
 
     final weights = state.weightLogs;
     final latestKg = weights.isEmpty ? null : weights.last.kg;
@@ -150,7 +157,10 @@ class _GymScreenState extends State<GymScreen> {
           child: AppCard(theme: theme, pad: 14, child: Column(children: [
             Row(children: [
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('This week', style: TextStyle(fontSize: 12, color: theme.muted, fontWeight: FontWeight.w500)),
+                Text(
+                  isMultiWeek ? 'Week ${currentWeekIdx + 1}' : 'This week',
+                  style: TextStyle(fontSize: 12, color: theme.muted, fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 2),
                 Text('$weekDone of $activeDays sessions',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
@@ -159,17 +169,32 @@ class _GymScreenState extends State<GymScreen> {
                   color: theme.accent, track: theme.surface2,
                   child: Text('$weekDone', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.ink))),
             ]),
+            if (isMultiWeek) ...[
+              const SizedBox(height: 12),
+              _WeekTabBar(
+                weekCount: weekCount,
+                selectedWeek: currentWeekIdx,
+                theme: theme,
+                onTap: (w) {
+                  final target = (w * 7 + todayIdx).clamp(0, plan.days.length - 1);
+                  setState(() => _dayIdx = target);
+                },
+              ),
+            ],
             const SizedBox(height: 12),
             Row(children: [
-              for (var i = 0; i < plan.days.length; i++)
+              for (var i = 0; i < visibleDays.length; i++)
                 Expanded(child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 3),
                   child: _DayPill(
-                    day: plan.days[i],
-                    selected: i == _dayIdx,
+                    day: visibleDays[i],
+                    selected: i == dayInWeekIdx,
                     isToday: i == todayIdx,
                     theme: theme,
-                    onTap: () => setState(() => _dayIdx = i),
+                    onTap: () => setState(() => _dayIdx = currentWeekIdx * 7 + i),
+                    overrideShort: isMultiWeek
+                        ? (visibleDays[i].isRest ? 'REST' : 'D${i + 1}')
+                        : null,
                   ),
                 )),
             ]),
@@ -188,7 +213,7 @@ class _GymScreenState extends State<GymScreen> {
               GestureDetector(
                 onTap: () => _openEditDayLabelSheet(context, theme, day),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_dayIdx == todayIdx ? 'Today' : 'Session',
+                  Text(dayInWeekIdx == todayIdx ? 'Today' : 'Session',
                       style: TextStyle(fontSize: 12, color: theme.muted, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 2),
                   Row(children: [
@@ -843,6 +868,51 @@ class _WeightRow extends StatelessWidget {
   }
 }
 
+// ── Week tab bar (multi-week plans) ──────────────────────────────────────────
+
+class _WeekTabBar extends StatelessWidget {
+  final int weekCount;
+  final int selectedWeek;
+  final AppTheme theme;
+  final ValueChanged<int> onTap;
+  const _WeekTabBar({required this.weekCount, required this.selectedWeek, required this.theme, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var w = 0; w < weekCount; w++) ...[
+          if (w > 0) const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onTap(w),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: selectedWeek == w ? theme.accent : theme.surface2,
+                  borderRadius: BorderRadius.circular(10),
+                  border: selectedWeek == w ? null : Border.all(color: theme.rule),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Week ${w + 1}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: selectedWeek == w ? Colors.white : theme.muted,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 // ── Day pill ──────────────────────────────────────────────────────────────────
 
 class _DayPill extends StatelessWidget {
@@ -851,11 +921,12 @@ class _DayPill extends StatelessWidget {
   final bool isToday;
   final AppTheme theme;
   final VoidCallback onTap;
-  const _DayPill({required this.day, required this.selected, required this.isToday, required this.theme, required this.onTap});
+  final String? overrideShort;
+  const _DayPill({required this.day, required this.selected, required this.isToday, required this.theme, required this.onTap, this.overrideShort});
 
   @override
   Widget build(BuildContext context) {
-    final rest = day.label.toLowerCase() == 'rest';
+    final rest = day.isRest || day.label.toLowerCase() == 'rest';
     final bg = selected ? theme.accent : (day.done ? theme.accent.withOpacity(0.13) : theme.surface2);
     final fg = selected ? Colors.white : (day.done ? theme.accent : theme.ink);
     return GestureDetector(
@@ -869,7 +940,7 @@ class _DayPill extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Opacity(opacity: 0.75, child: Text(day.short, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg))),
+          Opacity(opacity: 0.75, child: Text(overrideShort ?? day.short, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg))),
           const SizedBox(height: 4),
           Text(
             rest ? '—' : (day.done ? '✓' : (isToday ? '•' : '')),
