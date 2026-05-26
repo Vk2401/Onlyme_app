@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:gal/gal.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
@@ -365,13 +365,32 @@ class _SnapCarouselState extends State<_SnapCarousel> {
     _ctrl = PageController(initialPage: widget.initialIndex);
   }
 
-  Future<void> _download(Snapshot snap) async {
+  Future<void> _download(BuildContext context, Snapshot snap) async {
     final path = snap.imagePath;
-    if (path == null || !File(path).existsSync()) return;
-    await Share.shareXFiles(
-      [XFile(path)],
-      text: snap.note.isNotEmpty ? snap.note : null,
-    );
+    if (path == null || !File(path).existsSync()) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(behavior: SnackBarBehavior.floating, content: Text('No image to save')),
+        );
+      }
+      return;
+    }
+    try {
+      final hasAccess = await Gal.hasAccess(toAlbum: true);
+      if (!hasAccess) await Gal.requestAccess(toAlbum: true);
+      await Gal.putImage(path, album: 'Only Me');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Saved to gallery')),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Could not save image')),
+        );
+      }
+    }
   }
 
   @override
@@ -453,7 +472,7 @@ class _SnapCarouselState extends State<_SnapCarousel> {
               ])),
               const SizedBox(width: 12),
               GestureDetector(
-                onTap: () => _download(snap),
+                onTap: () => _download(context, snap),
                 child: Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
@@ -497,39 +516,60 @@ class _SnapCarouselState extends State<_SnapCarousel> {
   }
 }
 
-class _SnapPage extends StatelessWidget {
+class _SnapPage extends StatefulWidget {
   final Snapshot snap;
   const _SnapPage({required this.snap});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 70, 20, 140),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: AspectRatio(
-            aspectRatio: 3 / 4,
-            child: _imageWidget(),
-          ),
-        ),
-      ),
-    );
+  State<_SnapPage> createState() => _SnapPageState();
+}
+
+class _SnapPageState extends State<_SnapPage> {
+  final _transformCtrl = TransformationController();
+
+  @override
+  void dispose() {
+    _transformCtrl.dispose();
+    super.dispose();
   }
 
-  Widget _imageWidget() {
-    final path = snap.imagePath;
-    if (path != null && File(path).existsSync()) {
-      return Image.file(File(path), fit: BoxFit.cover);
-    }
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [
-            HSLColor.fromAHSL(1, snap.hue.toDouble(), 0.4, 0.6).toColor(),
-            HSLColor.fromAHSL(1, snap.hue.toDouble(), 0.5, 0.3).toColor(),
-          ],
+  void _resetZoom() => _transformCtrl.value = Matrix4.identity();
+
+  @override
+  Widget build(BuildContext context) {
+    final path = widget.snap.imagePath;
+    final hasImage = path != null && File(path).existsSync();
+
+    return GestureDetector(
+      onDoubleTap: _resetZoom,
+      child: InteractiveViewer(
+        transformationController: _transformCtrl,
+        minScale: 1.0,
+        maxScale: 5.0,
+        clipBehavior: Clip.none,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 70, 20, 140),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: AspectRatio(
+                aspectRatio: 3 / 4,
+                child: hasImage
+                    ? Image.file(File(path), fit: BoxFit.cover)
+                    : Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                            colors: [
+                              HSLColor.fromAHSL(1, widget.snap.hue.toDouble(), 0.4, 0.6).toColor(),
+                              HSLColor.fromAHSL(1, widget.snap.hue.toDouble(), 0.5, 0.3).toColor(),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
         ),
       ),
     );
