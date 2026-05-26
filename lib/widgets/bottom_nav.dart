@@ -37,16 +37,20 @@ class BottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Left two nav items
-              _buildItem(items[0]),
-              _buildItem(items[1]),
-              // Center FAB slot — always takes up the same space
-              _buildFab(),
-              // Right two nav items
-              _buildItem(items[2]),
-              _buildItem(items[3]),
-            ],
+            children: onAdd != null
+                ? [
+                    _buildItem(items[0]),
+                    _buildItem(items[1]),
+                    _buildFab(),
+                    _buildItem(items[2]),
+                    _buildItem(items[3]),
+                  ]
+                : [
+                    _buildItem(items[0]),
+                    _buildItem(items[1]),
+                    _buildItem(items[2]),
+                    _buildItem(items[3]),
+                  ],
           ),
         ),
       ),
@@ -54,10 +58,6 @@ class BottomNav extends StatelessWidget {
   }
 
   Widget _buildFab() {
-    if (onAdd == null) {
-      // Invisible placeholder keeps the layout symmetric
-      return const SizedBox(width: 52, height: 52);
-    }
     return GestureDetector(
       onTap: onAdd,
       behavior: HitTestBehavior.opaque,

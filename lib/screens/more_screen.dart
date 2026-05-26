@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
 import '../models/debt.dart';
@@ -354,8 +353,6 @@ class _NotificationsSectionState extends State<_NotificationsSection>
   bool _notifOk = true;
   bool _exactOk = true;
   bool _batteryOk = true;
-  bool _testBusy = false;
-  String? _testMsg;
 
   @override
   void initState() {
@@ -383,18 +380,6 @@ class _NotificationsSectionState extends State<_NotificationsSection>
     final b = await svc.isBatteryOptimizationDisabled();
     if (!mounted) return;
     setState(() { _notifOk = n; _exactOk = e; _batteryOk = b; });
-  }
-
-  Future<void> _sendTest() async {
-    setState(() { _testBusy = true; _testMsg = null; });
-    final result = await NotificationsService.instance.sendTestNotification();
-    if (!mounted) return;
-    setState(() {
-      _testBusy = false;
-      _testMsg = result == 'ok'
-          ? 'Test notification scheduled — look for it in ~10 seconds'
-          : 'Failed: $result';
-    });
   }
 
   @override
@@ -441,41 +426,6 @@ class _NotificationsSectionState extends State<_NotificationsSection>
           hasTop: true,
         ),
       ])),
-
-      const SizedBox(height: 10),
-
-      // Test notification button
-      GestureDetector(
-        onTap: _testBusy ? null : _sendTest,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: theme.accent.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: theme.accent.withOpacity(0.35)),
-          ),
-          child: Row(children: [
-            Icon(_testBusy ? LucideIcons.loader : LucideIcons.send,
-                color: theme.accent, size: 18),
-            const SizedBox(width: 10),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              Text('Send test notification',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.accent)),
-              if (_testMsg != null)
-                Text(_testMsg!,
-                    style: TextStyle(fontSize: 11, color: theme.muted, height: 1.3)),
-              if (_testMsg == null)
-                Text('Fires in 10 s — confirms the pipeline works',
-                    style: TextStyle(fontSize: 11, color: theme.muted)),
-            ])),
-          ]),
-        ),
-      ),
-
-      const SizedBox(height: 10),
-
-      // Alarm sound picker
-      AppCard(theme: theme, pad: 0, child: _AlarmSoundRow(theme: theme)),
     ]);
   }
 }
@@ -548,70 +498,6 @@ class _PermRow extends StatelessWidget {
   }
 }
 
-// ── Alarm sound picker ─────────────────────────────────────────────────────────
-
-class _AlarmSoundRow extends StatelessWidget {
-  final AppTheme theme;
-  const _AlarmSoundRow({required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final name = state.profile.alarmSoundName;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _pick(context, state),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          child: Row(children: [
-            IconChip(
-              bg: const Color(0xFF8B7CFF).withOpacity(0.13), size: 36,
-              child: const Icon(LucideIcons.music, color: Color(0xFF8B7CFF), size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              Text('Alarm sound', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.ink, letterSpacing: -0.1)),
-              const SizedBox(height: 1),
-              Text(
-                name ?? 'System default',
-                style: TextStyle(fontSize: 12, color: name != null ? theme.accent : theme.muted),
-                maxLines: 1, overflow: TextOverflow.ellipsis,
-              ),
-            ])),
-            if (name != null)
-              GestureDetector(
-                onTap: () => state.setAlarmSound(path: null, name: null),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(padding: const EdgeInsets.all(6), child: Icon(LucideIcons.x, size: 16, color: theme.muted)),
-              ),
-            Icon(LucideIcons.chevronRight, color: theme.muted, size: 16),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pick(BuildContext context, AppState state) async {
-    final picked = await FilePicker.platform.pickFiles(
-      type: FileType.audio,
-      allowMultiple: false,
-    );
-    if (picked == null || picked.files.single.path == null) return;
-
-    final src = File(picked.files.single.path!);
-    final dir = await getApplicationDocumentsDirectory();
-    final alarmsDir = Directory('${dir.path}/alarms');
-    if (!alarmsDir.existsSync()) alarmsDir.createSync(recursive: true);
-
-    final ext = picked.files.single.extension ?? 'mp3';
-    final dest = File('${alarmsDir.path}/alarm_sound.$ext');
-    await src.copy(dest.path);
-
-    if (!context.mounted) return;
-    state.setAlarmSound(path: dest.path, name: picked.files.single.name);
-  }
-}
 
 int _snapsThisMonth(AppState state) {
   final now = DateTime.now();
