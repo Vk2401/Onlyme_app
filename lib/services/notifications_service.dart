@@ -33,9 +33,11 @@ class NotificationsService {
   static const _kTestId = 0x7FFFFFF0;
 
   // Channel IDs
-  static const _chTasksId = 'onlyme_tasks';
+  static const _chTasksId  = 'onlyme_tasks';
   static const _chEventsId = 'onlyme_events';
-  static const _chAlarmsId = 'onlyme_alarms';
+  // v2: recreated with explicit alarm ringtone URI so it sounds like an alarm
+  static const _chAlarmsId  = 'onlyme_alarms_v2';
+  static const _chAlarmsOld = 'onlyme_alarms';
 
   Future<void> init() async {
     if (_ready) return;
@@ -71,6 +73,12 @@ class NotificationsService {
         description: 'Reminders for planned events',
         importance: Importance.high,
       ));
+      // Delete the old alarm channel (sound cannot be changed on an existing
+      // channel — delete it so the new v2 channel is created fresh).
+      try { await androidPlugin.deleteNotificationChannel(_chAlarmsOld); } catch (_) {}
+
+      // v2 channel: uses the default system alarm ringtone so it sounds like
+      // an actual alarm, not a notification chime.
       await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
         _chAlarmsId,
         'Alarms',
@@ -78,6 +86,7 @@ class NotificationsService {
         importance: Importance.max,
         audioAttributesUsage: AudioAttributesUsage.alarm,
         playSound: true,
+        sound: UriAndroidNotificationSound('content://settings/system/alarm_alert'),
       ));
 
       // flutter_local_notifications v17 changed its Gson serialisation format.
@@ -402,10 +411,9 @@ class NotificationsService {
           importance: Importance.max,
           priority: Priority.max,
           category: AndroidNotificationCategory.alarm,
-          // fullScreenIntent omitted — Android 14+ restricts USE_FULL_SCREEN_INTENT
-          // to communication/call apps. alarmClock schedule mode already provides
-          // OS-level alarm priority and status-bar clock icon without it.
           audioAttributesUsage: AudioAttributesUsage.alarm,
+          // Use the system alarm ringtone so it sounds like an alarm, not a chime.
+          sound: UriAndroidNotificationSound('content://settings/system/alarm_alert'),
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,

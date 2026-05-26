@@ -21,6 +21,16 @@ String _catLabel(String cat) {
   }
 }
 
+void openSnapshotAddSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (_) => const _AddSnapshotSheet(cat: 'body'),
+  );
+}
+
 class SnapshotsScreen extends StatefulWidget {
   const SnapshotsScreen({super.key});
 

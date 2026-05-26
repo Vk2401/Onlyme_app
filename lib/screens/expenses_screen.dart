@@ -10,6 +10,16 @@ import '../widgets/primitives.dart';
 
 enum _Filter { week, month, year, all }
 
+void openExpenseAddSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (_) => const _ExpenseSheet(),
+  );
+}
+
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
   @override

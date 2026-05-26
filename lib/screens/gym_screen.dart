@@ -12,6 +12,78 @@ import '../widgets/header.dart';
 import '../widgets/primitives.dart';
 import '../widgets/confirm_sheet.dart';
 
+/// Opens the add-exercise sheet for today's workout day.
+/// Called from AppShell's FAB. Shows a snackbar if today is a rest day.
+Future<void> openGymAddSheet(BuildContext context) async {
+  final state = context.read<AppState>();
+  final plan = state.gym;
+  final todayIdx = DateTime.now().weekday - 1;
+  final day = todayIdx < plan.days.length ? plan.days[todayIdx] : plan.days.first;
+  if (day.isRest) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      behavior: SnackBarBehavior.floating,
+      content: Text('Today is a rest day — switch to a workout day first'),
+    ));
+    return;
+  }
+  _gymOpenExerciseSheet(context, dayId: day.id);
+}
+
+/// Package-level helper so both [_GymScreenState] and [openGymAddSheet] can open
+/// the exercise sheet without duplicating the builder.
+void _gymOpenExerciseSheet(BuildContext context, {required int dayId, int? exIndex, Exercise? ex}) {
+  final theme = context.read<AppState>().theme;
+  final nameCtrl    = TextEditingController(text: ex?.name ?? '');
+  final setsCtrl    = TextEditingController(text: ex?.sets.toString() ?? '');
+  final repsCtrl    = TextEditingController(text: ex?.reps ?? '');
+  final weightCtrl  = TextEditingController(text: ex?.weight ?? '');
+  final tutorialCtrl = TextEditingController(text: ex?.tutorialLink ?? '');
+  String? pickedImagePath = ex?.imagePath;
+  final editing = ex != null;
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setSheetState) => _ExerciseSheetBody(
+        theme: theme,
+        editing: editing,
+        nameCtrl: nameCtrl,
+        setsCtrl: setsCtrl,
+        repsCtrl: repsCtrl,
+        weightCtrl: weightCtrl,
+        tutorialCtrl: tutorialCtrl,
+        pickedImagePath: pickedImagePath,
+        onImageChanged: (p) => setSheetState(() => pickedImagePath = p),
+        onSubmit: () {
+          if (nameCtrl.text.trim().isEmpty) return;
+          final sets = int.tryParse(setsCtrl.text.trim()) ?? 3;
+          final link = tutorialCtrl.text.trim().isEmpty ? null : tutorialCtrl.text.trim();
+          final state = ctx.read<AppState>();
+          if (editing && exIndex != null) {
+            state.editExercise(dayId, exIndex, Exercise(
+              name: nameCtrl.text.trim(), sets: sets,
+              reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
+              weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
+              done: ex!.done, imagePath: pickedImagePath, tutorialLink: link,
+            ));
+          } else {
+            state.addExercise(dayId,
+              name: nameCtrl.text.trim(), sets: sets,
+              reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
+              weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
+              imagePath: pickedImagePath, tutorialLink: link,
+            );
+          }
+          Navigator.of(ctx).pop();
+        },
+      ),
+    ),
+  );
+}
+
 class GymScreen extends StatefulWidget {
   const GymScreen({super.key});
 
@@ -195,7 +267,7 @@ class _GymScreenState extends State<GymScreen> {
               index: i,
               theme: theme,
               onToggle: () => state.toggleExercise(day.id, i),
-              onEdit: () => _openExerciseSheet(context, theme, dayId: day.id, exIndex: i, ex: day.exercises[i]),
+              onEdit: () => _openExerciseSheet(context, dayId: day.id, exIndex: i, ex: day.exercises[i]),
               onDelete: () => state.deleteExercise(day.id, i),
             ),
 
@@ -237,7 +309,7 @@ class _GymScreenState extends State<GymScreen> {
               )),
               const SizedBox(width: 10),
               Expanded(child: GestureDetector(
-                onTap: () => _openExerciseSheet(context, theme, dayId: day.id),
+                onTap: () => _openExerciseSheet(context, dayId: day.id),
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   decoration: BoxDecoration(
@@ -395,152 +467,8 @@ class _GymScreenState extends State<GymScreen> {
     );
   }
 
-  void _openExerciseSheet(BuildContext context, AppTheme theme, {required int dayId, int? exIndex, Exercise? ex}) {
-    final nameCtrl = TextEditingController(text: ex?.name ?? '');
-    final setsCtrl = TextEditingController(text: ex?.sets.toString() ?? '');
-    final repsCtrl = TextEditingController(text: ex?.reps ?? '');
-    final weightCtrl = TextEditingController(text: ex?.weight ?? '');
-    final tutorialCtrl = TextEditingController(text: ex?.tutorialLink ?? '');
-    String? pickedImagePath = ex?.imagePath;
-    final editing = ex != null;
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.5),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: theme.rule),
-            ),
-            padding: const EdgeInsets.fromLTRB(22, 20, 22, 36),
-            child: SingleChildScrollView(
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 18),
-                Text(editing ? 'Edit exercise' : 'Add exercise',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
-                const SizedBox(height: 16),
-                _GField(theme: theme, hint: 'Exercise name', controller: nameCtrl, autofocus: !editing),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(child: _GField(theme: theme, hint: 'Sets', controller: setsCtrl, keyboardType: TextInputType.number)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _GField(theme: theme, hint: 'Reps (e.g. 8 or 12/leg)', controller: repsCtrl)),
-                ]),
-                const SizedBox(height: 10),
-                _GField(theme: theme, hint: 'Weight (e.g. 85 kg / bodyweight)', controller: weightCtrl),
-                const SizedBox(height: 14),
-
-                // Reference image picker
-                Text('Reference image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.muted, letterSpacing: 0.5)),
-                const SizedBox(height: 8),
-                if (pickedImagePath != null && File(pickedImagePath!).existsSync())
-                  Stack(children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(File(pickedImagePath!), height: 160, width: double.infinity, fit: BoxFit.cover),
-                    ),
-                    Positioned(top: 8, right: 8, child: GestureDetector(
-                      onTap: () => setSheetState(() => pickedImagePath = null),
-                      child: Container(
-                        width: 28, height: 28,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withOpacity(0.5)),
-                        child: const Icon(LucideIcons.x, color: Colors.white, size: 14),
-                      ),
-                    )),
-                  ])
-                else
-                  Row(children: [
-                    Expanded(child: GestureDetector(
-                      onTap: () async {
-                        final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
-                        if (img == null) return;
-                        final dir = await getApplicationDocumentsDirectory();
-                        final exDir = Directory('${dir.path}/exercises');
-                        if (!await exDir.exists()) await exDir.create(recursive: true);
-                        final dest = File('${exDir.path}/ex_${DateTime.now().millisecondsSinceEpoch}.jpg');
-                        await File(img.path).copy(dest.path);
-                        setSheetState(() => pickedImagePath = dest.path);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.rule)),
-                        child: Column(children: [
-                          Icon(LucideIcons.image, color: theme.accent, size: 20),
-                          const SizedBox(height: 6),
-                          Text('Gallery', style: TextStyle(fontSize: 12, color: theme.ink, fontWeight: FontWeight.w600)),
-                        ]),
-                      ),
-                    )),
-                    const SizedBox(width: 10),
-                    Expanded(child: GestureDetector(
-                      onTap: () async {
-                        final img = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 85);
-                        if (img == null) return;
-                        final dir = await getApplicationDocumentsDirectory();
-                        final exDir = Directory('${dir.path}/exercises');
-                        if (!await exDir.exists()) await exDir.create(recursive: true);
-                        final dest = File('${exDir.path}/ex_${DateTime.now().millisecondsSinceEpoch}.jpg');
-                        await File(img.path).copy(dest.path);
-                        setSheetState(() => pickedImagePath = dest.path);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.rule)),
-                        child: Column(children: [
-                          Icon(LucideIcons.camera, color: theme.accent, size: 20),
-                          const SizedBox(height: 6),
-                          Text('Camera', style: TextStyle(fontSize: 12, color: theme.ink, fontWeight: FontWeight.w600)),
-                        ]),
-                      ),
-                    )),
-                  ]),
-
-                const SizedBox(height: 10),
-                _GField(theme: theme, hint: 'Tutorial link (YouTube / video URL)', controller: tutorialCtrl),
-                const SizedBox(height: 22),
-                GestureDetector(
-                  onTap: () {
-                    if (nameCtrl.text.trim().isEmpty) return;
-                    final sets = int.tryParse(setsCtrl.text.trim()) ?? 3;
-                    final link = tutorialCtrl.text.trim().isEmpty ? null : tutorialCtrl.text.trim();
-                    final state = ctx.read<AppState>();
-                    if (editing && exIndex != null) {
-                      state.editExercise(dayId, exIndex, Exercise(
-                        name: nameCtrl.text.trim(),
-                        sets: sets,
-                        reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
-                        weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
-                        done: ex.done,
-                        imagePath: pickedImagePath,
-                        tutorialLink: link,
-                      ));
-                    } else {
-                      state.addExercise(dayId,
-                        name: nameCtrl.text.trim(),
-                        sets: sets,
-                        reps: repsCtrl.text.trim().isEmpty ? '—' : repsCtrl.text.trim(),
-                        weight: weightCtrl.text.trim().isEmpty ? '—' : weightCtrl.text.trim(),
-                        imagePath: pickedImagePath,
-                        tutorialLink: link,
-                      );
-                    }
-                    Navigator.of(ctx).pop();
-                  },
-                  child: _SubmitBtn(theme: theme, label: editing ? 'Save changes' : 'Add exercise'),
-                ),
-              ]),
-            ),
-          ),
-        ),
-      ),
-    );
+  void _openExerciseSheet(BuildContext context, {required int dayId, int? exIndex, Exercise? ex}) {
+    _gymOpenExerciseSheet(context, dayId: dayId, exIndex: exIndex, ex: ex);
   }
 
   void _openWeightLogSheet(BuildContext context, AppTheme theme) {
@@ -951,6 +879,133 @@ class _DayPill extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Exercise sheet body (shared between add and edit paths) ──────────────────
+
+class _ExerciseSheetBody extends StatelessWidget {
+  final AppTheme theme;
+  final bool editing;
+  final TextEditingController nameCtrl, setsCtrl, repsCtrl, weightCtrl, tutorialCtrl;
+  final String? pickedImagePath;
+  final ValueChanged<String?> onImageChanged;
+  final VoidCallback onSubmit;
+  const _ExerciseSheetBody({
+    required this.theme, required this.editing,
+    required this.nameCtrl, required this.setsCtrl, required this.repsCtrl,
+    required this.weightCtrl, required this.tutorialCtrl,
+    required this.pickedImagePath, required this.onImageChanged, required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: theme.rule),
+        ),
+        padding: const EdgeInsets.fromLTRB(22, 20, 22, 36),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: theme.rule, borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 18),
+            Text(editing ? 'Edit exercise' : 'Add exercise',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.ink)),
+            const SizedBox(height: 16),
+            _GField(theme: theme, hint: 'Exercise name', controller: nameCtrl, autofocus: !editing),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: _GField(theme: theme, hint: 'Sets', controller: setsCtrl, keyboardType: TextInputType.number)),
+              const SizedBox(width: 10),
+              Expanded(child: _GField(theme: theme, hint: 'Reps (e.g. 8 or 12/leg)', controller: repsCtrl)),
+            ]),
+            const SizedBox(height: 10),
+            _GField(theme: theme, hint: 'Weight (e.g. 85 kg / bodyweight)', controller: weightCtrl),
+            const SizedBox(height: 14),
+            Text('Reference image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.muted, letterSpacing: 0.5)),
+            const SizedBox(height: 8),
+            if (pickedImagePath != null && File(pickedImagePath!).existsSync())
+              Stack(children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(File(pickedImagePath!), height: 160, width: double.infinity, fit: BoxFit.cover),
+                ),
+                Positioned(top: 8, right: 8, child: GestureDetector(
+                  onTap: () => onImageChanged(null),
+                  child: Container(
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withOpacity(0.5)),
+                    child: const Icon(LucideIcons.x, color: Colors.white, size: 14),
+                  ),
+                )),
+              ])
+            else
+              Row(children: [
+                Expanded(child: _ImagePickerTile(
+                  theme: theme, label: 'Gallery', icon: LucideIcons.image,
+                  onPick: () async {
+                    final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+                    if (img == null) return;
+                    final path = await _saveExerciseImage(img.path);
+                    onImageChanged(path);
+                  },
+                )),
+                const SizedBox(width: 10),
+                Expanded(child: _ImagePickerTile(
+                  theme: theme, label: 'Camera', icon: LucideIcons.camera,
+                  onPick: () async {
+                    final img = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 85);
+                    if (img == null) return;
+                    final path = await _saveExerciseImage(img.path);
+                    onImageChanged(path);
+                  },
+                )),
+              ]),
+            const SizedBox(height: 10),
+            _GField(theme: theme, hint: 'Tutorial link (YouTube / video URL)', controller: tutorialCtrl),
+            const SizedBox(height: 22),
+            GestureDetector(
+              onTap: onSubmit,
+              child: _SubmitBtn(theme: theme, label: editing ? 'Save changes' : 'Add exercise'),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImagePickerTile extends StatelessWidget {
+  final AppTheme theme;
+  final String label;
+  final IconData icon;
+  final VoidCallback onPick;
+  const _ImagePickerTile({required this.theme, required this.label, required this.icon, required this.onPick});
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onPick,
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.rule)),
+      child: Column(children: [
+        Icon(icon, color: theme.accent, size: 20),
+        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontSize: 12, color: theme.ink, fontWeight: FontWeight.w600)),
+      ]),
+    ),
+  );
+}
+
+Future<String> _saveExerciseImage(String sourcePath) async {
+  final dir = await getApplicationDocumentsDirectory();
+  final exDir = Directory('${dir.path}/exercises');
+  if (!await exDir.exists()) await exDir.create(recursive: true);
+  final dest = File('${exDir.path}/ex_${DateTime.now().millisecondsSinceEpoch}.jpg');
+  await File(sourcePath).copy(dest.path);
+  return dest.path;
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────

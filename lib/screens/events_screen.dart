@@ -20,6 +20,16 @@ const _eventColors = [
   Color(0xFF60A5FA), Color(0xFFF472B6), Color(0xFF34D399), Color(0xFFFF8A6B),
 ];
 
+Future<void> openEventAddSheet(BuildContext context) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (_) => const _EventSheet(),
+  );
+}
+
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
 

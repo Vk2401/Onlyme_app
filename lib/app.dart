@@ -21,7 +21,6 @@ import 'screens/legal_screen.dart';
 import 'screens/placeholder_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/tweaks_sheet.dart';
-import 'widgets/add_sheet.dart';
 import 'widgets/confirm_sheet.dart';
 
 class OnlyMeApp extends StatelessWidget {
@@ -60,7 +59,6 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   bool showTweaks = false;
-  bool addOpen = false;
 
   @override
   void initState() {
@@ -132,7 +130,6 @@ class _AppShellState extends State<AppShell> {
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         if (showTweaks) { setState(() => showTweaks = false); return; }
-        if (addOpen) { setState(() => addOpen = false); return; }
         if (state.screen == 'privacy_policy' || state.screen == 'terms') {
           state.setScreen('more');
           return;
@@ -171,14 +168,9 @@ class _AppShellState extends State<AppShell> {
             left: 0, right: 0, bottom: 0,
             child: BottomNav(
               active: state.screen,
-              onChange: (k) {
-                if (k == 'add') {
-                  setState(() => addOpen = true);
-                } else {
-                  state.setScreen(k);
-                }
-              },
+              onChange: state.setScreen,
               theme: theme,
+              onAdd: _addActionFor(state.screen, context),
             ),
           ),
 
@@ -191,32 +183,27 @@ class _AppShellState extends State<AppShell> {
             )),
             TweaksSheet(onClose: () => setState(() => showTweaks = false)),
           ],
-
-          // Add sheet
-          if (addOpen) ...[
-            Positioned.fill(child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => addOpen = false),
-              child: Container(color: Colors.black.withOpacity(0.5)),
-            )),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: 1),
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                builder: (_, v, child) => Transform.translate(
-                  offset: Offset(0, (1 - v) * 300),
-                  child: Opacity(opacity: v, child: child),
-                ),
-                child: AddSheet(onClose: () => setState(() => addOpen = false)),
-              ),
-            ),
-          ],
           ]),
         ),
       ),
     ));
+  }
+
+  /// Returns a callback that opens the add sheet for [screen], or null if the
+  /// screen has no add action (FAB will be hidden).
+  VoidCallback? _addActionFor(String screen, BuildContext context) {
+    switch (screen) {
+      case 'tasks':     return () => openTaskAddSheet(context);
+      case 'finance':   return () => openFinanceAddSheet(context);
+      case 'events':    return () => openEventAddSheet(context);
+      case 'gym':       return () => openGymAddSheet(context);
+      case 'snapshots': return () => openSnapshotAddSheet(context);
+      case 'notes':     return () => openNoteAddSheet(context);
+      case 'links':     return () => openLinkAddSheet(context);
+      case 'vault':     return () => openVaultAddSheet(context);
+      case 'expenses':  return () => openExpenseAddSheet(context);
+      default: return null;
+    }
   }
 
   String _placeholderLabel(String key) => switch (key) {

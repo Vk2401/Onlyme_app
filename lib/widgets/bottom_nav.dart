@@ -7,17 +7,18 @@ class BottomNav extends StatelessWidget {
   final String active;
   final ValueChanged<String> onChange;
   final AppTheme theme;
+  /// Null = current screen has no add action; FAB is hidden.
+  final VoidCallback? onAdd;
 
   static const moreKeys = ['tasks', 'snapshots', 'skincare', 'notes', 'links', 'vault', 'profile', 'events', 'more'];
 
-  const BottomNav({super.key, required this.active, required this.onChange, required this.theme});
+  const BottomNav({super.key, required this.active, required this.onChange, required this.theme, this.onAdd});
 
   @override
   Widget build(BuildContext context) {
     final items = [
       _NavItem('home', 'Home', LucideIcons.home),
       _NavItem('gym', 'Workout', LucideIcons.dumbbell),
-      _NavItem('add', '', LucideIcons.plus, fab: true),
       _NavItem('finance', 'Finance', LucideIcons.wallet),
       _NavItem('more', 'More', LucideIcons.moreHorizontal),
     ];
@@ -37,7 +38,14 @@ class BottomNav extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              for (final it in items) _buildItem(it),
+              // Left two nav items
+              _buildItem(items[0]),
+              _buildItem(items[1]),
+              // Center FAB slot — always takes up the same space
+              _buildFab(),
+              // Right two nav items
+              _buildItem(items[2]),
+              _buildItem(items[3]),
             ],
           ),
         ),
@@ -45,28 +53,33 @@ class BottomNav extends StatelessWidget {
     );
   }
 
-  Widget _buildItem(_NavItem it) {
-    if (it.fab) {
-      return GestureDetector(
-        onTap: () => onChange('add'),
-        behavior: HitTestBehavior.opaque,
-        child: Transform.translate(
-          offset: const Offset(0, -20),
-          child: Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-                colors: [theme.accent, theme.accent2],
-              ),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [BoxShadow(color: theme.glow, blurRadius: 24, offset: const Offset(0, 8))],
-            ),
-            child: const Icon(LucideIcons.plus, color: Colors.white, size: 24),
-          ),
-        ),
-      );
+  Widget _buildFab() {
+    if (onAdd == null) {
+      // Invisible placeholder keeps the layout symmetric
+      return const SizedBox(width: 52, height: 52);
     }
+    return GestureDetector(
+      onTap: onAdd,
+      behavior: HitTestBehavior.opaque,
+      child: Transform.translate(
+        offset: const Offset(0, -20),
+        child: Container(
+          width: 52, height: 52,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+              colors: [theme.accent, theme.accent2],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [BoxShadow(color: theme.glow, blurRadius: 24, offset: const Offset(0, 8))],
+          ),
+          child: const Icon(LucideIcons.plus, color: Colors.white, size: 24),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItem(_NavItem it) {
     final on = active == it.k || (it.k == 'more' && moreKeys.contains(active));
     final color = on ? theme.accent : theme.muted;
     return Expanded(
@@ -93,6 +106,5 @@ class _NavItem {
   final String k;
   final String label;
   final IconData icon;
-  final bool fab;
-  _NavItem(this.k, this.label, this.icon, {this.fab = false});
+  _NavItem(this.k, this.label, this.icon);
 }

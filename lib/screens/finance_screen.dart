@@ -9,6 +9,16 @@ import '../widgets/primitives.dart';
 import '../widgets/segmented.dart';
 import '../widgets/confirm_sheet.dart';
 
+Future<void> openFinanceAddSheet(BuildContext context) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (_) => const _DebtSheet(),
+  );
+}
+
 class FinanceScreen extends StatefulWidget {
   const FinanceScreen({super.key});
 

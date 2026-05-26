@@ -9,6 +9,16 @@ import '../widgets/header.dart';
 import '../widgets/primitives.dart';
 import '../widgets/confirm_sheet.dart';
 
+void openVaultAddSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (_) => const _VaultSheet(),
+  );
+}
+
 class VaultScreen extends StatelessWidget {
   const VaultScreen({super.key});
 

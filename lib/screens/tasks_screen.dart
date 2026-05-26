@@ -24,6 +24,17 @@ const _colorPalette = [
   Color(0xFFA78BFA), Color(0xFF34D399), Color(0xFFFB7185), Color(0xFF22D3EE),
 ];
 
+/// Opens the add-task bottom sheet. Called from AppShell's FAB.
+Future<void> openTaskAddSheet(BuildContext context) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (_) => const _TaskSheet(),
+  );
+}
+
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
 
