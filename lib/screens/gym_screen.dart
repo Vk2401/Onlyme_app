@@ -20,13 +20,14 @@ class GymScreen extends StatefulWidget {
 }
 
 class _GymScreenState extends State<GymScreen> {
-  late int selId;
+  late int _dayIdx; // 0=Mon … 6=Sun (list index, independent of GymDay.id)
   final _planNameCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    selId = DateTime.now().weekday; // 1=Mon … 7=Sun, matches GymDay ids
+    // weekday: 1=Mon … 7=Sun → convert to 0-based index for list position
+    _dayIdx = DateTime.now().weekday - 1;
   }
 
   @override
@@ -40,14 +41,14 @@ class _GymScreenState extends State<GymScreen> {
     final state = context.watch<AppState>();
     final theme = state.theme;
     final plan = state.gym;
-    final todayId = DateTime.now().weekday;
+    final todayIdx = DateTime.now().weekday - 1; // 0=Mon … 6=Sun
 
-    final day = plan.days.firstWhere((x) => x.id == selId, orElse: () => plan.days.first);
+    final day = _dayIdx < plan.days.length ? plan.days[_dayIdx] : plan.days.first;
     final pct = day.exercises.isEmpty
         ? 0.0
         : day.exercises.where((e) => e.done).length / day.exercises.length;
     final weekDone = plan.days.where((x) => x.done).length;
-    final activeDays = plan.days.where((x) => x.label.toLowerCase() != 'rest').length;
+    final activeDays = plan.days.where((x) => !x.isRest).length;
 
     final weights = state.weightLogs;
     final latestKg = weights.isEmpty ? null : weights.last.kg;
@@ -88,14 +89,15 @@ class _GymScreenState extends State<GymScreen> {
             ]),
             const SizedBox(height: 12),
             Row(children: [
-              for (final d in plan.days)
+              for (var i = 0; i < plan.days.length; i++)
                 Expanded(child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 3),
                   child: _DayPill(
-                    day: d, selected: d.id == selId,
-                    isToday: d.id == todayId,
+                    day: plan.days[i],
+                    selected: i == _dayIdx,
+                    isToday: i == todayIdx,
                     theme: theme,
-                    onTap: () => setState(() => selId = d.id),
+                    onTap: () => setState(() => _dayIdx = i),
                   ),
                 )),
             ]),
@@ -114,7 +116,7 @@ class _GymScreenState extends State<GymScreen> {
               GestureDetector(
                 onTap: () => _openEditDayLabelSheet(context, theme, day),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(day.id == todayId ? 'Today' : 'Session',
+                  Text(_dayIdx == todayIdx ? 'Today' : 'Session',
                       style: TextStyle(fontSize: 12, color: theme.muted, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 2),
                   Row(children: [

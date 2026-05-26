@@ -312,7 +312,10 @@ class NotificationsService {
     required String payload,
     NotificationDetails? normalDetails,
   }) async {
-    final tzAt = tz.TZDateTime.from(at, tz.local);
+    // Convert through UTC so the alarm fires at the correct local wall-clock
+    // time regardless of whether FlutterTimezone initialised tz.local correctly.
+    final utc = at.toUtc();
+    final tzAt = tz.TZDateTime.utc(utc.year, utc.month, utc.day, utc.hour, utc.minute, utc.second);
     final details = isAlarm ? _alarmDetails() : (normalDetails ?? _taskDetails());
 
     // Tier 1: alarmClock mode (highest priority, requires SCHEDULE_EXACT_ALARM on API 34+)
