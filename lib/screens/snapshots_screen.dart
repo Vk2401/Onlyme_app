@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:gal/gal.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
@@ -375,22 +375,10 @@ class _SnapCarouselState extends State<_SnapCarousel> {
       }
       return;
     }
-    try {
-      final hasAccess = await Gal.hasAccess(toAlbum: true);
-      if (!hasAccess) await Gal.requestAccess(toAlbum: true);
-      await Gal.putImage(path, album: 'Only Me');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Saved to gallery')),
-        );
-      }
-    } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Could not save image')),
-        );
-      }
-    }
+    await Share.shareXFiles(
+      [XFile(path)],
+      text: snap.note.isNotEmpty ? snap.note : null,
+    );
   }
 
   @override
