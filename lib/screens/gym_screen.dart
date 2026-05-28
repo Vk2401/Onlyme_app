@@ -13,10 +13,17 @@ import '../widgets/primitives.dart';
 import '../widgets/confirm_sheet.dart';
 
 /// Opens the add-exercise sheet for today's workout day.
-/// Called from AppShell's FAB. Shows a snackbar if today is a rest day.
+/// Called from AppShell's FAB. Shows a snackbar if plan is empty or today is a rest day.
 Future<void> openGymAddSheet(BuildContext context) async {
   final state = context.read<AppState>();
   final plan = state.gym;
+  if (plan.days.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      behavior: SnackBarBehavior.floating,
+      content: Text('Import a plan or add workout days first'),
+    ));
+    return;
+  }
   final todayIdx = DateTime.now().weekday - 1;
   final day = todayIdx < plan.days.length ? plan.days[todayIdx] : plan.days.first;
   if (day.isRest) {
@@ -115,8 +122,9 @@ class _GymScreenState extends State<GymScreen> {
     final plan = state.gym;
     final todayIdx = DateTime.now().weekday - 1; // 0=Mon … 6=Sun
 
-    final day = _dayIdx < plan.days.length ? plan.days[_dayIdx] : plan.days.first;
-    final pct = day.exercises.isEmpty
+    final isEmpty = plan.days.isEmpty;
+    final day = isEmpty ? null : (_dayIdx < plan.days.length ? plan.days[_dayIdx] : plan.days.first);
+    final pct = (day == null || day.exercises.isEmpty)
         ? 0.0
         : day.exercises.where((e) => e.done).length / day.exercises.length;
     final isMultiWeek = plan.days.length > 7;
@@ -124,7 +132,7 @@ class _GymScreenState extends State<GymScreen> {
     final currentWeekIdx = isMultiWeek ? _dayIdx ~/ 7 : 0;
     final weekStart   = currentWeekIdx * 7;
     final weekEnd     = (weekStart + 7).clamp(0, plan.days.length);
-    final visibleDays = plan.days.sublist(weekStart, weekEnd);
+    final visibleDays = isEmpty ? <GymDay>[] : plan.days.sublist(weekStart, weekEnd);
     final dayInWeekIdx = _dayIdx - weekStart;
     final weekDone    = visibleDays.where((x) => x.done).length;
     final activeDays  = visibleDays.where((x) => !x.isRest).length;
@@ -150,6 +158,23 @@ class _GymScreenState extends State<GymScreen> {
             ),
           ],
         ),
+
+        // Empty state — no workout plan set up yet
+        if (isEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: AppCard(theme: theme, pad: 32, child: Column(children: [
+              Icon(LucideIcons.dumbbell, size: 44, color: theme.muted),
+              const SizedBox(height: 14),
+              Text('No workout plan yet',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.ink)),
+              const SizedBox(height: 6),
+              Text('Import a plan from a backup file, or\nbuild your own in More → Import backup.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: theme.muted, height: 1.5)),
+            ])),
+          ),
+        ] else ...[
 
         // Weekly overview card
         Padding(
@@ -211,13 +236,13 @@ class _GymScreenState extends State<GymScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => _openEditDayLabelSheet(context, theme, day),
+                onTap: () => _openEditDayLabelSheet(context, theme, day!),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(dayInWeekIdx == todayIdx ? 'Today' : 'Session',
                       style: TextStyle(fontSize: 12, color: theme.muted, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 2),
                   Row(children: [
-                    Text(day.label, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: theme.ink, letterSpacing: -0.5)),
+                    Text(day!.label, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: theme.ink, letterSpacing: -0.5)),
                     const SizedBox(width: 6),
                     Icon(LucideIcons.pencil, size: 13, color: theme.accent),
                   ]),
@@ -260,7 +285,7 @@ class _GymScreenState extends State<GymScreen> {
         const SizedBox(height: 16),
 
         // Exercises or rest day view
-        if (day.isRest)
+        if (day!.isRest)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: AppCard(theme: theme, pad: 30, child: Column(children: [
@@ -353,6 +378,8 @@ class _GymScreenState extends State<GymScreen> {
             ]),
           ),
         ],
+
+        ], // end isEmpty else
 
         const SizedBox(height: 28),
 
