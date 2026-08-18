@@ -170,6 +170,7 @@ jobs:
           releaseFiles: releases/*.aab
           track: internal
           status: completed
+          changesNotSentForReview: true
 
       # Manual trigger only → chosen track (alpha = Closed Testing, beta, production)
       - name: Deploy to Play Store — ${{ github.event.inputs.track || 'internal' }}
@@ -181,4 +182,5 @@ jobs:
           releaseFiles: releases/*.aab
           track: ${{ github.event.inputs.track }}
           status: completed
+          changesNotSentForReview: true
           whatsNewDirectory: distribution/whatsnew
