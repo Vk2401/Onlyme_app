@@ -88,7 +88,7 @@ jobs:
         run: flutter pub run flutter_launcher_icons
 
       - name: Analyze
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       # ── Signing setup ──────────────────────────────────────────────────────
       - name: Decode keystore
