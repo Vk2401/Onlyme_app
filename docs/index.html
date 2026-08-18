@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Only Me — Private Personal Tracker</title>
+  <meta name="description" content="Only Me is a private, local-only personal tracker for tasks, finance, gym, snapshots, notes, and more. Everything stays on your device." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f12;
+      --card: #1a1a20;
+      --border: #2a2a34;
+      --ink: #f0f0f4;
+      --muted: #8b8b99;
+      --accent: #5eead4;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Hero */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 72px 24px 48px;
+      max-width: 640px;
+      width: 100%;
+    }
+
+    .icon {
+      width: 100px;
+      height: 100px;
+      border-radius: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 40px rgba(94,234,212,0.15);
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 span { color: var(--accent); }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 36px;
+      max-width: 480px;
+    }
+
+    .play-badge {
+      display: inline-block;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .play-badge:hover { transform: translateY(-2px); opacity: 0.9; }
+    .play-badge img { height: 68px; }
+
+    /* Features */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 860px;
+      padding: 0 24px 72px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .card-icon { font-size: 28px; margin-bottom: 12px; }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .card p { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+    /* Privacy strip */
+    .privacy {
+      width: 100%;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .privacy h2 { font-size: 1.1rem; font-weight: 700; }
+    .privacy p { font-size: 0.875rem; color: var(--muted); max-width: 500px; line-height: 1.6; }
+
+    .privacy-links { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .privacy-links a {
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .privacy-links a:hover { text-decoration: underline; }
+
+    /* Footer */
+    footer {
+      padding: 20px 24px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <section class="hero">
+    <img class="icon" src="../assets/icon/app_icon.png" alt="Only Me icon" onerror="this.style.display='none'" />
+    <h1>Only <span>Me</span></h1>
+    <p>A private, local-only personal tracker. Tasks, finance, gym, snapshots, notes, vault — everything stays on your device. No accounts. No cloud. No tracking.</p>
+    <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.vasanthkumar24.onlyme" target="_blank" rel="noopener">
+      <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" />
+    </a>
+  </section>
+
+  <section class="features">
+    <div class="card">
+      <div class="card-icon">✅</div>
+      <h3>Tasks & Streaks</h3>
+      <p>Track daily habits and tasks with streak counters. Set reminders and never miss a beat.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">💸</div>
+      <h3>Finance</h3>
+      <p>Log debts you owe and money owed to you. Track partial payments and clear balances.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🗓️</div>
+      <h3>Events</h3>
+      <p>Plan upcoming events with per-item budgets. Compare estimated vs. actual spend.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🏋️</div>
+      <h3>Gym Plan</h3>
+      <p>Build a weekly or 2-week workout split. Track sets, reps, and weight. Log bodyweight over time.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📸</div>
+      <h3>Snapshots</h3>
+      <p>A visual journal for progress photos. Pinch to zoom, swipe to compare, share with ease.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔐</div>
+      <h3>Vault</h3>
+      <p>Store passwords and credentials locally. No sync, no breach risk — only on your device.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📝</div>
+      <h3>Notes & Links</h3>
+      <p>Quick-capture notes and bookmark links that open directly in your browser.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">💾</div>
+      <h3>Backup & Restore</h3>
+      <p>Export your entire data as a single JSON file. Import on any device to restore instantly.</p>
+    </div>
+  </section>
+
+  <div class="privacy">
+    <h2>100% Private by design</h2>
+    <p>Only Me has no internet permission, no analytics, no ads, and no backend. All your data lives in your phone's sandboxed storage and never leaves your device.</p>
+    <div class="privacy-links">
+      <a href="privacy-policy.md">Privacy Policy</a>
+      <a href="terms-and-conditions.md">Terms & Conditions</a>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2026 Vasanthkumar24 · Built with Flutter
+  </footer>
+
+</body>
+</html>

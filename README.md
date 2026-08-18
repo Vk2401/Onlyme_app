@@ -4,6 +4,10 @@ A private, local-only personal tracker. Everything stays on your device — no a
 
 <p align="center">
   <img src="assets/icon/app_icon.png" alt="Only me app icon" width="140" />
+  <br/><br/>
+  <a href="https://play.google.com/store/apps/details?id=com.vasanthkumar24.onlyme">
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60" />
+  </a>
 </p>
 
 ## What it tracks
