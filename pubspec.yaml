@@ -1,7 +1,7 @@
 name: onlyme
 description: Only me — a private personal tracker (tasks, finance, events, gym, snapshots).
 publish_to: 'none'
-version: 1.1.1+85
+version: 1.1.1+86
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
